@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -13,7 +12,7 @@ import com.linkedin.parseq.promise.SettablePromise;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
+public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
 
   abstract void scheduleTasks(List<Task<T>> tasks, Context context);
 

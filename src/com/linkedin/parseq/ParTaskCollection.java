@@ -10,30 +10,26 @@ import com.linkedin.parseq.BaseFoldTask.Step;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public class ParTaskCollection<T> extends TaskCollection<T> {
+public class ParTaskCollection<T, R> extends TaskCollection<T, R> {
 
-  public ParTaskCollection(final Iterable<Task<T>> tasks)
-  {
-    this(tasks, Function.identity());
+  private ParTaskCollection(List<Task<T>> tasks,
+      Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF) {
+    super(tasks, foldF);
   }
 
-  public <A> ParTaskCollection(final Iterable<Task<A>> tasks, Function<Task<A>, Task<T>> f)
-  {
-    super(tasks, f);
+  public static <T> ParTaskCollection<T, T> fromTasks(List<Task<T>> tasks) {
+    return new ParTaskCollection<T, T>(tasks, Function.identity());
   }
 
   @Override
-  <A> TaskCollection<A> createCollection(Iterable<Task<T>> tasks, Function<Task<T>, Task<A>> f) {
-    return new ParTaskCollection<>(tasks, f);
+  <A> TaskCollection<T, A> createCollection(List<Task<T>> tasks,
+      Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF) {
+    return new ParTaskCollection<T, A>(tasks, foldF);
   }
 
   @Override
   <Z> Task<Z> createFoldTask(String name, Z zero, BiFunction<Z, T, Step<Z>> op) {
     return new ParFoldTask<Z, T>(name, _tasks, zero, op);
-  }
-
-  public Task<List<T>> results(final String name) {
-    return new ParTaskImpl<T>(name, _tasks);
   }
 
 }

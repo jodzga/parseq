@@ -482,14 +482,22 @@ public class Tasks
   }
 
   //TODO temporary, for testing only
-  public static <T> TaskCollection<T> seqColl(final Iterable<Task<T>> tasks)
+  public static <T> TaskCollection<T, T> seqColl(final Iterable<Task<T>> tasks)
   {
-    return new SeqTaskCollection<T>(tasks);
+    List<Task<T>> array = new ArrayList<Task<T>>();
+    for (Task<T> t: tasks) {
+      array.add(t);
+    }
+    return SeqTaskCollection.fromTasks(Collections.unmodifiableList(array));
   }
 
   //TODO temporary, for testing only
-  public static <T> TaskCollection<T> parColl(final Iterable<Task<T>> tasks)
+  public static <T> TaskCollection<T, T> parColl(final Iterable<Task<T>> tasks)
   {
-    return new ParTaskCollection<T>(tasks);
+    List<Task<T>> array = new ArrayList<Task<T>>();
+    for (Task<T> t: tasks) {
+      array.add(t);
+    }
+    return ParTaskCollection.fromTasks(Collections.unmodifiableList(array));
   }
 }
