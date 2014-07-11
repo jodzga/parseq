@@ -16,30 +16,32 @@
 
 package com.linkedin.parseq;
 
-import java.util.List;
 import java.util.function.BiFunction;
+
+import com.linkedin.parseq.stream.Publisher;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 /* package private */ class SeqFoldTask<B, T> extends BaseFoldTask<B, T>
 {
-  public SeqFoldTask(final String name, final Iterable<? extends Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
+  private Task<T> _prevTask;
+
+  public SeqFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
   {
     super(name, tasks, zero, op);
   }
 
-
   @Override
-  void scheduleTasks(List<Task<T>> tasks, Context context) {
-    Task<?> prevTask = tasks.get(0);
-    for (int i = 1; i < tasks.size(); i++)
-    {
-      final Task<?> currTask = tasks.get(i);
-      context.after(prevTask).run(currTask);
-      prevTask = currTask;
+  void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask) {
+    if (_prevTask != null) {
+      //sequence tasks
+      context.after(_prevTask).run(task);
+    } else {
+      //run only the first task
+      context.run(task);
     }
-    context.run(tasks.get(0));
+    _prevTask = task;
   }
 
 }

@@ -156,6 +156,24 @@ public class ContextImpl implements Context, Cancellable
     }
   }
 
+  @Override
+  public void runSubTask(Task<?> task, Task<Object> rootTask) {
+    // check reference equality to make sure model is consistent i.e.
+    // subtasks have same parent
+    if (rootTask != _task)  {
+      throw new RuntimeException("Context method invoked associated with wrong task");
+    }
+    _inTask.set(_task);
+    try
+    {
+      run(task);
+    }
+    finally
+    {
+      _inTask.remove();
+    }
+  }
+
   /**
    * TODO
    * this is a way in from other threads to schedule task on this context

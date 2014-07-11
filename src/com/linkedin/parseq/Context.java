@@ -52,6 +52,13 @@ public interface Context
   void run(Task<?>... tasks);
 
   /**
+   * TODO
+   * @param task
+   * @param rootTask
+   */
+  void runSubTask(Task<?> task, Task<Object> rootTask);
+
+  /**
    * Provides a mechanism of ordering the execution of some child tasks after
    * the resolution of the given promises (which may also be tasks).
    *

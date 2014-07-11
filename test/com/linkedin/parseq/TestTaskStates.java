@@ -429,6 +429,11 @@ public class TestTaskStates
     {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void runSubTask(Task<?> task, Task<Object> rootTask) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   private static class NullTaskLog extends TaskLogger

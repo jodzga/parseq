@@ -424,6 +424,12 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
     {
       return _context.getEngineProperty(key);
     }
+
+    @Override
+    public void runSubTask(Task<?> task, Task<Object> rootTask) {
+      _context.runSubTask(task, rootTask);
+      _relationshipBuilder.addRelationship(Relationship.POTENTIAL_PARENT_OF, task);
+    }
   }
 
   private class WrappedAfter implements After

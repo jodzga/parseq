@@ -16,8 +16,9 @@
 
 package com.linkedin.parseq;
 
-import java.util.List;
 import java.util.function.BiFunction;
+
+import com.linkedin.parseq.stream.Publisher;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
@@ -25,15 +26,14 @@ import java.util.function.BiFunction;
 /* package private */ class ParFoldTask<B, T> extends BaseFoldTask<B, T>
 {
 
-  public ParFoldTask(final String name, final Iterable<? extends Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
+  public ParFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
   {
     super(name, tasks, zero, op);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  void scheduleTasks(final List<Task<T>> tasks, final Context context) {
-    for (Task<T> task: tasks) {
-      context.run(task);
-    }
+  void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask) {
+    context.runSubTask(task, (Task<Object>) rootTask);
   }
 }

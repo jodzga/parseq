@@ -29,6 +29,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import com.linkedin.parseq.stream.IterablePublisher;
+
 /**
  * This class provides a set of factory methods for create common
  * {@link Task}s.
@@ -484,20 +486,12 @@ public class Tasks
   //TODO temporary, for testing only
   public static <T> TaskCollection<T, T> seqColl(final Iterable<Task<T>> tasks)
   {
-    List<Task<T>> array = new ArrayList<Task<T>>();
-    for (Task<T> t: tasks) {
-      array.add(t);
-    }
-    return SeqTaskCollection.fromTasks(Collections.unmodifiableList(array));
+    return SeqTaskCollection.fromTasks(new IterablePublisher<>(tasks));
   }
 
   //TODO temporary, for testing only
   public static <T> TaskCollection<T, T> parColl(final Iterable<Task<T>> tasks)
   {
-    List<Task<T>> array = new ArrayList<Task<T>>();
-    for (Task<T> t: tasks) {
-      array.add(t);
-    }
-    return ParTaskCollection.fromTasks(Collections.unmodifiableList(array));
+    return ParTaskCollection.fromTasks(new IterablePublisher<>(tasks));
   }
 }

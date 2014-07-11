@@ -8,6 +8,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.linkedin.parseq.BaseFoldTask.Step;
+import com.linkedin.parseq.stream.Publisher;
 
 /**
  * TODO add creating trace for functional operators without the need of creating new tasks
@@ -16,7 +17,7 @@ import com.linkedin.parseq.BaseFoldTask.Step;
  */
 public abstract class TaskCollection<T, R> {
 
-  protected final List<Task<T>> _tasks;
+  protected final Publisher<Task<T>> _tasks;
 
   /**
    * This function transforms folding function from the one which folds type R to the one
@@ -24,13 +25,13 @@ public abstract class TaskCollection<T, R> {
    */
   protected final Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> _foldF;
 
-  protected TaskCollection(final List<Task<T>> tasks, Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF)
+  protected TaskCollection(final Publisher<Task<T>> tasks, Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF)
   {
     _tasks = tasks;
     _foldF = foldF;
   }
 
-  abstract <A> TaskCollection<T, A> createCollection(final List<Task<T>> tasks, Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF);
+  abstract <A> TaskCollection<T, A> createCollection(final Publisher<Task<T>> tasks, Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF);
   abstract <Z> Task<Z> createFoldTask(String name, Z zero, final BiFunction<Z, T, Step<Z>> op);
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -57,6 +58,8 @@ public abstract class TaskCollection<T, R> {
     boolean first = true;
     return createFoldFTask("reduce: " + name, null, (z, e) -> {
       if (first) {
+        //TODO this doesn't work - first is always true
+
         return Step.cont(e);
       } else {
         return Step.cont(op.apply(z, e));

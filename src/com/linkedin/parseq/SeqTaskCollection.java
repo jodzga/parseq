@@ -5,6 +5,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.linkedin.parseq.BaseFoldTask.Step;
+import com.linkedin.parseq.stream.Publisher;
 
 
 /**
@@ -13,17 +14,17 @@ import com.linkedin.parseq.BaseFoldTask.Step;
 public class SeqTaskCollection<T, R> extends TaskCollection<T, R> {
 
 
-  private SeqTaskCollection(List<Task<T>> tasks,
+  private SeqTaskCollection(final Publisher<Task<T>> tasks,
       Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF) {
     super(tasks, foldF);
   }
 
-  public static <T> SeqTaskCollection<T, T> fromTasks(List<Task<T>> tasks) {
+  public static <T> SeqTaskCollection<T, T> fromTasks(final Publisher<Task<T>> tasks) {
     return new SeqTaskCollection<T, T>(tasks, Function.identity());
   }
 
   @Override
-  <A> TaskCollection<T, A> createCollection(List<Task<T>> tasks,
+  <A> TaskCollection<T, A> createCollection(final Publisher<Task<T>> tasks,
       Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF) {
     return new SeqTaskCollection<T, A>(tasks, foldF);
   }

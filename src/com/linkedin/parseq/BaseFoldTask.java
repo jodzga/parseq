@@ -1,94 +1,106 @@
 package com.linkedin.parseq;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.function.BiFunction;
 
+import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.stream.Publisher;
+import com.linkedin.parseq.stream.Subscriber;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
+public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
 
-  abstract void scheduleTasks(List<Task<T>> tasks, Context context);
+  abstract void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask);
 
-  private volatile List<Task<T>> _tasks;
+  private Publisher<Task<T>> _tasks;
+  private boolean _streamingComplete = false;
+  private int _totalTasks;
+  private int _tasksCompleted = 0;
   private B _partialResult;
   private final BiFunction<B, T, Step<B>> _op;
-  private int _counter = 0;
 
-  public BaseFoldTask(final String name, final Iterable<? extends Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
+  public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
   {
     super(name);
-    List<Task<T>> taskList = new ArrayList<Task<T>>();
-    for(Task<T> task : tasks)
-    {
-      taskList.add(task);
-    }
-
-    if (taskList.size() == 0)
-    {
-      throw new IllegalArgumentException("No tasks to fold!");
-    }
-
-    _tasks = Collections.unmodifiableList(taskList);
     _partialResult = zero;
     _op = op;
+    _tasks = tasks;
   }
 
   @Override
   protected Promise<? extends B> run(final Context context) throws Exception
   {
     final SettablePromise<B> result = Promises.settable();
+    final Task<B> that = this;
 
-    _counter = _tasks.size();
-
-    for(Task<T> task : _tasks)
-    {
-      task.onResolve(p -> {
-        _counter--;
-        if (!result.isDone()) {
-          if (p.isFailed()) {
-            result.fail(p.getError());
-          } else {
-            try {
-              Step<B> step = _op.apply(_partialResult, p.get());
-              switch (step.getType()) {
-                case cont:
-                  if (_counter > 0) {
-                    _partialResult = step.getValue();
-                  } else {
-                    _partialResult = null;
-                    result.done(step.getValue());
+    _tasks.subscribe(new Subscriber<Task<T>>() {
+      @Override
+      public void onNext(Task<T> task) {
+        if (!_streamingComplete) { //don't schedule tasks if streaming has finished e.g. by onError()
+          task.onResolve(p -> {
+            _tasksCompleted++;
+            if (!result.isDone()) {
+              if (p.isFailed()) {
+                _streamingComplete = true;
+                _partialResult = null;
+                result.fail(p.getError());
+              } else {
+                try {
+                  Step<B> step = _op.apply(_partialResult, p.get());
+                  switch (step.getType()) {
+                    case cont:
+                      _partialResult = step.getValue();
+                      if (_streamingComplete && _tasksCompleted == _totalTasks) {
+                        result.done(_partialResult);
+                        _partialResult = null;
+                      }
+                      break;
+                    case done:
+                      result.done(step.getValue());
+                      _partialResult = null;
+                      _streamingComplete = true;
+                      break;
+                    case stop:
+                      result.done(_partialResult);
+                      _partialResult = null;
+                      _streamingComplete = true;
+                      break;
+                    case fail:
+                      _streamingComplete = true;
+                      _partialResult = null;
+                      result.fail(step.getError());
+                      break;
                   }
-                  break;
-                case done:
+                } catch (Throwable t) {
+                  _streamingComplete = true;
                   _partialResult = null;
-                  result.done(step.getValue());
-                  break;
-                case stop:
-                  result.done(_partialResult);
-                  _partialResult = null;
-                  break;
-                case fail:
-                  _partialResult = null;
-                  result.fail(step.getError());
-                  break;
+                  result.fail(t);
+                }
               }
-            } catch (Throwable t) {
-              _partialResult = null;
-              result.fail(t);
             }
-          }
+          });
+          scheduleNextTask(task, context, that);
         }
-      });
-    }
+      }
 
-    scheduleTasks(_tasks, context);
+      @Override
+      public void onComplete(int totalTasks) {
+        _streamingComplete = true;
+        _totalTasks = totalTasks;
+      }
+
+      @Override
+      public void onError(Throwable cause) {
+        _streamingComplete = true;
+        if (!result.isDone()) {
+          result.fail(cause);
+        }
+      }
+    });
 
     _tasks = null;
     return result;
