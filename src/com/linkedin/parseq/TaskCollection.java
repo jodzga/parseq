@@ -1,6 +1,5 @@
 package com.linkedin.parseq;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -11,11 +10,18 @@ import java.util.function.Predicate;
 import com.linkedin.parseq.BaseFoldTask.Step;
 
 /**
+ * TODO add creating trace for functional operators without the need of creating new tasks
+ *
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public abstract class TaskCollection<T, R> {
 
   protected final List<Task<T>> _tasks;
+
+  /**
+   * This function transforms folding function from the one which folds type R to the one
+   * which folds type T.
+   */
   protected final Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> _foldF;
 
   protected TaskCollection(final List<Task<T>> tasks, Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF)
@@ -25,7 +31,6 @@ public abstract class TaskCollection<T, R> {
   }
 
   abstract <A> TaskCollection<T, A> createCollection(final List<Task<T>> tasks, Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF);
-
   abstract <Z> Task<Z> createFoldTask(String name, Z zero, final BiFunction<Z, T, Step<Z>> op);
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -74,26 +79,14 @@ public abstract class TaskCollection<T, R> {
     return null;
   }
 
-  public Task<List<R>> take(final String name, final int n) {
-    return createFoldFTask("take " + n + ": " + name, new ArrayList<R>(), (z, e) -> {
-      z.add(e);
-      if (z.size() == n) {
-        return Step.done(z);
-      } else {
-        return Step.cont(z);
-      }
-    });
+  public TaskCollection<T, R> take(final String name, final int n) {
+    //TODO
+    return null;
   }
 
-  public Task<List<R>> takeWhile(final String name, final Predicate<R> predicate) {
-    return createFoldFTask("takeWhile: " + name, new ArrayList<R>(), (z, e) -> {
-      if (predicate.test(e)) {
-        z.add(e);
-        return Step.cont(z);
-      } else {
-        return Step.done(z);
-      }
-    });
+  public TaskCollection<T, R> takeWhile(final String name, final Predicate<R> predicate) {
+    //TODO
+    return null;
   }
 
 }

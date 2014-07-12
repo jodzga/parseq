@@ -31,18 +31,17 @@ public class SeqFindExample extends AbstractExample
   {
     final MockService<String> httpClient = getService();
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
-    
-    List<Task<Integer>> fetchSizes = 
+
+    List<Task<String>> fetchSizes =
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
                  .within("100ms", 100, TimeUnit.MILLISECONDS)
-                 .recover("default", t -> "")
-                 .<Integer>map("length", s -> s.length()))
+                 .recover("default", t -> ""))
         .collect(Collectors.toList());
-    
-    Task<Optional<Integer>> positiveLength = Tasks.seqColl(fetchSizes).find("positive length", x -> x > 0);
-    
+
+    Task<Optional<Integer>> positiveLength = Tasks.seqColl(fetchSizes).map("length", s -> s.length()).find("positive length", x -> x > 0);
+
     engine.run(positiveLength);
 
     positiveLength.await();
