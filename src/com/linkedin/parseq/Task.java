@@ -37,6 +37,10 @@ import com.linkedin.parseq.trace.ShallowTrace;
 import com.linkedin.parseq.trace.Trace;
 
 /**
+ * TODO modify functional operators to inline functions instead of creating
+ * separate tasks for each of them (performance reasons).
+ * This requires improved tracing so that functions can be part of task trace.
+ *
  * A task represents a deferred execution that also contains its resulting
  * value. In addition, tasks include some tracing information that can be
  * used with various trace printers.
