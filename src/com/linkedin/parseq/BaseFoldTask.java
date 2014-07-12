@@ -70,6 +70,10 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
                   _partialResult = null;
                   result.done(step.getValue());
                   break;
+                case stop:
+                  result.done(_partialResult);
+                  _partialResult = null;
+                  break;
                 case fail:
                   _partialResult = null;
                   result.fail(step.getError());
@@ -92,7 +96,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
 
   static class Step<S> {
 
-    public enum Type { cont, done, fail };
+    public enum Type { cont, done, fail, stop };
 
     private final S _value;
     private final Type _type;
@@ -114,6 +118,10 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
 
     public static <S> Step<S> fail(Throwable t) {
       return new Step<S>(Type.fail, null, t);
+    }
+
+    public static <S> Step<S> stop() {
+      return new Step<S>(Type.stop, null, null);
     }
 
     public S getValue() {

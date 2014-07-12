@@ -49,7 +49,7 @@ public abstract class TaskCollection<T, R> {
     });
   }
 
-  public <B> Task<B> fold(final String name, final B zero, final BiFunction<B, R, B> op) {
+  public <Z> Task<Z> fold(final String name, final Z zero, final BiFunction<Z, R, Z> op) {
     return createFoldFTask("fold: " + name, zero, (z, e) -> Step.cont(op.apply(z, e)));
   }
 
@@ -75,18 +75,50 @@ public abstract class TaskCollection<T, R> {
   }
 
   public TaskCollection<T, R> filter(final String name, final Predicate<R> predicate) {
-    //TODO
-    return null;
+    return createCollection(_tasks, fr -> _foldF.apply((z, r) -> {
+      if (predicate.test(r)) {
+        return fr.apply(z, r);
+      } else {
+        return Step.cont(z);
+      }
+    }));
+  }
+
+  private static class Counter {
+    int _counter;
+    public Counter(int counter) {
+      _counter = counter;
+    }
+    int inc() {
+      _counter++;
+      return _counter;
+    }
   }
 
   public TaskCollection<T, R> take(final String name, final int n) {
-    //TODO
-    return null;
+    final Counter counter = new Counter(0);
+    return createCollection(_tasks, fr -> _foldF.apply((z, r) -> {
+      Step<Object> step = fr.apply(z, r);
+      if (counter.inc() < n) {
+        return step;
+      } else {
+        if (step.getType() == Step.Type.cont) {
+          return Step.done(step.getValue());
+        } else {
+          return step;
+        }
+      }
+    }));
   }
 
   public TaskCollection<T, R> takeWhile(final String name, final Predicate<R> predicate) {
-    //TODO
-    return null;
+    return createCollection(_tasks, fr -> _foldF.apply((z, r) -> {
+      if (predicate.test(r)) {
+        return fr.apply(z, r);
+      } else {
+        return Step.stop();
+      }
+    }));
   }
 
 }
