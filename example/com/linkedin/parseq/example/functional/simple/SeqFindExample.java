@@ -40,7 +40,12 @@ public class SeqFindExample extends AbstractExample
                  .recover("default", t -> ""))
         .collect(Collectors.toList());
 
-    Task<Optional<Integer>> positiveLength = Tasks.seqColl(fetchSizes).map("length", s -> s.length()).find("positive length", x -> x > 0);
+    Task<Optional<Integer>> positiveLength =
+        Tasks.seqColl(fetchSizes)
+          .map("append", s -> s + "!")
+          .map("length", s -> s.length())
+          .map("decrease", s -> s - 1)
+          .find("positive length", x -> x > 0);
 
     engine.run(positiveLength);
 
