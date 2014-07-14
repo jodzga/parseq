@@ -1,6 +1,6 @@
 package com.linkedin.parseq;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -15,23 +15,25 @@ public class SeqTaskCollection<T, R> extends TaskCollection<T, R> {
 
 
   private SeqTaskCollection(final Publisher<Task<T>> tasks,
-      Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF) {
-    super(tasks, foldF);
+      Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF,
+      Optional<Task<?>> predecessor) {
+    super(tasks, foldF, predecessor);
   }
 
   public static <T> SeqTaskCollection<T, T> fromTasks(final Publisher<Task<T>> tasks) {
-    return new SeqTaskCollection<T, T>(tasks, Function.identity());
+    return new SeqTaskCollection<T, T>(tasks, Function.identity(), Optional.empty());
   }
 
   @Override
-  <A> TaskCollection<T, A> createCollection(final Publisher<Task<T>> tasks,
-      Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF) {
-    return new SeqTaskCollection<T, A>(tasks, foldF);
+  <B, A> TaskCollection<B, A> createCollection(final Publisher<Task<B>> tasks,
+      Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, B, Step<Object>>> foldF,
+      Optional<Task<?>> predecessor) {
+    return new SeqTaskCollection<B, A>(tasks, foldF, predecessor);
   }
 
   @Override
-  <Z> Task<Z> createFoldTask(String name, Z zero, BiFunction<Z, T, Step<Z>> op) {
-    return new SeqFoldTask<Z, T>(name, _tasks, zero, op);
+  <Z> Task<Z> createFoldTask(String name, Z zero, BiFunction<Z, T, Step<Z>> op, Optional<Task<?>> predecessor) {
+    return new SeqFoldTask<Z, T>(name, _tasks, zero, op, predecessor);
   }
 
 }

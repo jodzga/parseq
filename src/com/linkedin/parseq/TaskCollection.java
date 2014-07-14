@@ -1,6 +1,5 @@
 package com.linkedin.parseq;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -9,6 +8,7 @@ import java.util.function.Predicate;
 
 import com.linkedin.parseq.BaseFoldTask.Step;
 import com.linkedin.parseq.stream.Publisher;
+import com.linkedin.parseq.stream.Subscriber;
 
 /**
  * TODO add creating trace for functional operators without the need of creating new tasks
@@ -18,6 +18,7 @@ import com.linkedin.parseq.stream.Publisher;
 public abstract class TaskCollection<T, R> {
 
   protected final Publisher<Task<T>> _tasks;
+  private final Optional<Task<?>> _predecessor;
 
   /**
    * This function transforms folding function from the one which folds type R to the one
@@ -25,22 +26,68 @@ public abstract class TaskCollection<T, R> {
    */
   protected final Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> _foldF;
 
-  protected TaskCollection(final Publisher<Task<T>> tasks, Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF)
-  {
+  protected TaskCollection(final Publisher<Task<T>> tasks,
+      Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF,
+      Optional<Task<?>> predecessor) {
     _tasks = tasks;
     _foldF = foldF;
+    _predecessor = predecessor;
   }
 
-  abstract <A> TaskCollection<T, A> createCollection(final Publisher<Task<T>> tasks, Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF);
-  abstract <Z> Task<Z> createFoldTask(String name, Z zero, final BiFunction<Z, T, Step<Z>> op);
+  abstract <B, A> TaskCollection<B, A> createCollection(final Publisher<Task<B>> tasks,
+      Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, B, Step<Object>>> foldF,
+      Optional<Task<?>> predecessor);
+
+  abstract <Z> Task<Z> createFoldTask(String name, Z zero, final BiFunction<Z, T, Step<Z>> op,
+      Optional<Task<?>> predecessor);
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
   private <Z> Task<Z> createFoldFTask(String name, Z zero, final BiFunction<Z, R, Step<Z>> op) {
-    return createFoldTask(name, zero, (BiFunction<Z, T, Step<Z>>)((Function)_foldF).apply(op));
+    return createFoldTask(name, zero, (BiFunction<Z, T, Step<Z>>)((Function)_foldF).apply(op), _predecessor);
   }
 
   public <A> TaskCollection<T, A> map(final String desc, final Function<R, A> f) {
-    return createCollection(_tasks, fa -> _foldF.apply((z, r) -> fa.apply(z, f.apply(r))));
+    return createCollection(_tasks, fa -> _foldF.apply((z, r) -> fa.apply(z, f.apply(r))), _predecessor);
+  }
+
+  public <A> TaskCollection<T, A> flatMap(final String desc, final Function<R, TaskCollection<?, A>> f) {
+    //TODO
+    return null;
+  }
+
+  private static class TaskPublisher<A> implements Publisher<A> {
+    Subscriber<A> _subscriber;
+    int count = 0;
+    @Override
+    public void subscribe(Subscriber<A> subscriber) {
+      _subscriber = subscriber;
+    }
+    public void next(A element) {
+      count++;
+      _subscriber.onNext(element);
+    }
+    public void complete() {
+      _subscriber.onComplete(count);
+    }
+    public void error(Throwable cause) {
+      _subscriber.onError(cause);
+    }
+  }
+
+  public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f) {
+    final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
+    final Task<?> fold = map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
+      publisher.next(e);
+      return z;
+    });
+    fold.onResolve(p -> {
+      if (p.isFailed()) {
+        publisher.error(p.getError());
+      } else {
+        publisher.complete();
+      }
+    });
+    return createCollection(publisher, Function.identity(), Optional.of(fold));
   }
 
   public TaskCollection<T, R> forEach(final String desc, final Consumer<R> consumer) {
@@ -54,12 +101,18 @@ public abstract class TaskCollection<T, R> {
     return createFoldFTask("fold: " + name, zero, (z, e) -> Step.cont(op.apply(z, e)));
   }
 
-  public Task<R> reduce(final String name, final BiFunction<R, R, R> op) {
-    boolean first = true;
-    return createFoldFTask("reduce: " + name, null, (z, e) -> {
-      if (first) {
-        //TODO this doesn't work - first is always true
+  private static class BooleanHolder {
+    private boolean _value = false;
+    public BooleanHolder(boolean value) {
+      _value = value;
+    }
+  }
 
+  public Task<R> reduce(final String name, final BiFunction<R, R, R> op) {
+    final BooleanHolder first = new BooleanHolder(true);
+    return createFoldFTask("reduce: " + name, null, (z, e) -> {
+      if (first._value) {
+        first._value = false;
         return Step.cont(e);
       } else {
         return Step.cont(op.apply(z, e));
@@ -84,7 +137,7 @@ public abstract class TaskCollection<T, R> {
       } else {
         return Step.cont(z);
       }
-    }));
+    }), _predecessor);
   }
 
   private static class Counter {
@@ -111,7 +164,7 @@ public abstract class TaskCollection<T, R> {
           return step;
         }
       }
-    }));
+    }), _predecessor);
   }
 
   public TaskCollection<T, R> takeWhile(final String name, final Predicate<R> predicate) {
@@ -121,7 +174,7 @@ public abstract class TaskCollection<T, R> {
       } else {
         return Step.stop();
       }
-    }));
+    }), _predecessor);
   }
 
 }

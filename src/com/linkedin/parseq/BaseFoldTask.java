@@ -1,5 +1,6 @@
 package com.linkedin.parseq;
 
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 import com.linkedin.parseq.internal.SystemHiddenTask;
@@ -22,13 +23,17 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
   private int _tasksCompleted = 0;
   private B _partialResult;
   private final BiFunction<B, T, Step<B>> _op;
+  private final Optional<Task<?>> _predecessor;
 
-  public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
+
+  public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op,
+      Optional<Task<?>> predecessor)
   {
     super(name);
     _partialResult = zero;
     _op = op;
     _tasks = tasks;
+    _predecessor = predecessor;
   }
 
   @Override
@@ -101,6 +106,14 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
         }
       }
     });
+
+    /**
+     * This might be a bit counter intuitive, but we first need to subscribe to
+     * stream of tasks and then run task, which is publisher of for that source.
+     */
+    if (_predecessor.isPresent()) {
+      context.run(_predecessor.get());
+    }
 
     _tasks = null;
     return result;

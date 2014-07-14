@@ -16,6 +16,7 @@
 
 package com.linkedin.parseq;
 
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 import com.linkedin.parseq.stream.Publisher;
@@ -27,9 +28,9 @@ import com.linkedin.parseq.stream.Publisher;
 {
   private Task<T> _prevTask;
 
-  public SeqFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
+  public SeqFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op, Optional<Task<?>> predecessor)
   {
-    super(name, tasks, zero, op);
+    super(name, tasks, zero, op, predecessor);
   }
 
   @Override

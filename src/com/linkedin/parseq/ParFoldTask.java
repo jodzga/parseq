@@ -16,6 +16,7 @@
 
 package com.linkedin.parseq;
 
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 import com.linkedin.parseq.stream.Publisher;
@@ -26,9 +27,9 @@ import com.linkedin.parseq.stream.Publisher;
 /* package private */ class ParFoldTask<B, T> extends BaseFoldTask<B, T>
 {
 
-  public ParFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op)
+  public ParFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op, Optional<Task<?>> predecessor)
   {
-    super(name, tasks, zero, op);
+    super(name, tasks, zero, op, predecessor);
   }
 
   @SuppressWarnings("unchecked")
