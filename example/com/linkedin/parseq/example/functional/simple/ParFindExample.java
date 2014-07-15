@@ -32,23 +32,34 @@ public class ParFindExample extends AbstractExample
     final MockService<String> httpClient = getService();
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
-    List<Task<Integer>> fetchSizes =
+    List<Task<String>> fetchSizes = fetchList(httpClient, urls);
+
+    Task<Optional<Optional<String>>> find =
+        Tasks.parColl(fetchSizes)
+          .filter("twitter only", s -> s.contains("twitter"))
+          .flatMapTask("flatMap", z -> {
+            return  Tasks.parColl(fetchList(httpClient, urls))
+                .find("linkedin", s -> s.contains("linkedin"));
+          }).find("find", o -> o.isPresent());
+
+    engine.run(find);
+
+    find.await();
+
+    System.out.println("found: " + find.get());
+
+    ExampleUtil.printTracingResults(find);
+  }
+
+  private List<Task<String>> fetchList(final MockService<String> httpClient, List<String> urls) {
+    List<Task<String>> fetchSizes =
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within("100ms", 100, TimeUnit.MILLISECONDS)
-                 .recover("default", t -> "")
-                 .<Integer>map("length", s -> s.length()))
+                 .within("200ms", 200, TimeUnit.MILLISECONDS)
+                 .recover("default", t -> ""))
         .collect(Collectors.toList());
-
-    Task<Optional<Integer>> positiveLength = Tasks.parColl(fetchSizes).find("positive length", x -> x > 0);
-
-    engine.run(positiveLength);
-
-    positiveLength.await();
-
-    System.out.println("Positive length: " + positiveLength.get());
-
-    ExampleUtil.printTracingResults(positiveLength);
+    return fetchSizes;
   }
+
 }

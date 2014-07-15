@@ -96,6 +96,7 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
       public void onComplete(int totalTasks) {
         _streamingComplete = true;
         _totalTasks = totalTasks;
+        //TODO check if this can be resolved
       }
 
       @Override

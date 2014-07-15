@@ -64,7 +64,7 @@ public class ContextImpl implements Context, Cancellable
   // A thread local that holds the root task iff the root task is being executed
   // on the current thread. In all other cases, this thread local will hold a
   // null value.
-  private final ThreadLocal<Task<?>> _inTask = new ThreadLocal<Task<?>>();
+  private static final ThreadLocal<Task<?>> _inTask = new ThreadLocal<Task<?>>();
 
   private final Task<?> _parent;
   private final List<Task<?>> _predecessorTasks;
@@ -163,6 +163,7 @@ public class ContextImpl implements Context, Cancellable
     if (rootTask != _task)  {
       throw new RuntimeException("Context method invoked associated with wrong task");
     }
+    final Task<?> temp = _inTask.get();
     _inTask.set(_task);
     try
     {
@@ -170,7 +171,7 @@ public class ContextImpl implements Context, Cancellable
     }
     finally
     {
-      _inTask.remove();
+      _inTask.set(temp);
     }
   }
 
@@ -215,6 +216,25 @@ public class ContextImpl implements Context, Cancellable
   }
 
   @Override
+  public After afterTask(Task<Object> rootTask, Promise<?>... promises) {
+    // check reference equality to make sure model is consistent i.e.
+    // subtasks have same parent
+    if (rootTask != _task)  {
+      throw new RuntimeException("Context method invoked associated with wrong task");
+    }
+    final Task<?> temp = _inTask.get();
+    _inTask.set(_task);
+    try
+    {
+      return after(promises);
+    }
+    finally
+    {
+      _inTask.set(temp);
+    }
+  }
+
+  @Override
   public boolean cancel(Exception reason)
   {
     boolean result = _task.cancel(reason);
@@ -255,7 +275,8 @@ public class ContextImpl implements Context, Cancellable
 
   private void checkInTask()
   {
-    if (_inTask.get() != _task)
+    Task<?> t = _inTask.get();
+    if (t != _task)
     {
       throw new IllegalStateException("Context method invoked while not in context's task");
     }

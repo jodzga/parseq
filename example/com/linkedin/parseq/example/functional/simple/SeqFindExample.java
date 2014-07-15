@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.Task;
+import com.linkedin.parseq.TaskCollection;
 import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
@@ -32,27 +33,34 @@ public class SeqFindExample extends AbstractExample
     final MockService<String> httpClient = getService();
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
+    List<Task<String>> fetchSizes = fetchList(httpClient, urls);
+
+    Task<Optional<Optional<String>>> find =
+        Tasks.seqColl(fetchSizes)
+          .filter("google only", s -> s.contains("google"))
+          .flatMapTask("flatMap", z -> {
+            return  Tasks.seqColl(fetchList(httpClient, urls))
+                .find("linkedin", s -> s.contains("linkedin"));
+          }).find("nonempty", o -> o.isPresent());
+
+    engine.run(find);
+
+    find.await();
+
+    System.out.println("found: " + find.get());
+
+    ExampleUtil.printTracingResults(find);
+  }
+
+  private List<Task<String>> fetchList(final MockService<String> httpClient, List<String> urls) {
     List<Task<String>> fetchSizes =
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within("100ms", 100, TimeUnit.MILLISECONDS)
+                 .within("200ms", 200, TimeUnit.MILLISECONDS)
                  .recover("default", t -> ""))
         .collect(Collectors.toList());
-
-    Task<Optional<Integer>> positiveLength =
-        Tasks.seqColl(fetchSizes)
-          .map("append", s -> s + "!")
-          .map("length", s -> s.length())
-          .map("decrease", s -> s - 1)
-          .find("positive length", x -> x > 0);
-
-    engine.run(positiveLength);
-
-    positiveLength.await();
-
-    System.out.println("Positive length: " + positiveLength.get());
-
-    ExampleUtil.printTracingResults(positiveLength);
+    return fetchSizes;
   }
+
 }

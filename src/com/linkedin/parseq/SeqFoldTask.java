@@ -33,14 +33,15 @@ import com.linkedin.parseq.stream.Publisher;
     super(name, tasks, zero, op, predecessor);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask) {
     if (_prevTask != null) {
       //sequence tasks
-      context.after(_prevTask).run(task);
+      context.afterTask((Task<Object>)rootTask, _prevTask).run(task);
     } else {
       //run only the first task
-      context.run(task);
+      context.runSubTask(task, (Task<Object>)rootTask);
     }
     _prevTask = task;
   }
