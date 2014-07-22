@@ -72,8 +72,13 @@ public abstract class TaskCollection<T, R> {
   //TODO this probably does not make sense
   public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f) {
     final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
-    final Task<?> fold = map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
+    SeqPublisher<Task<T>> pub = new SeqPublisher<Task<T>>(_tasks);
+    final TaskCollection<T, R> lazyCollection = createCollection(pub, _foldF, _predecessor);
+    final Task<?> fold = lazyCollection.map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
       publisher.next(e);
+      e.onResolve( p -> {
+        pub.publishNext();
+      });
       return z;
     });
     fold.onResolve(p -> {
@@ -86,21 +91,29 @@ public abstract class TaskCollection<T, R> {
     return createCollection(publisher, Function.identity(), Optional.of(fold));
   }
 
+  /**
+   * TODO
+   * maybe:
+   * - separate hierarchies for SeqFoldTask and ParFoldTask, because ParFoldTask is much
+   *   simpler
+   * - for SeqFoldTask:
+   *   - change result of filter to something like "break" and in base fold task notify
+   *     publisher to release next task
+   *   - two modes???
+   *     - first: release next task every time
+   *     - second: release next task only on "break"
+   */
+
   //TODO semantics of this method is clear
   public <A> TaskCollection<A, A> flatMap(final String desc, final Function<R, TaskCollection<?, A>> f) {
-    final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
-    final Task<?> fold = map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
-      //TODO e is taskcollection
-      return z;
-    });
-    fold.onResolve(p -> {
-      if (p.isFailed()) {
-        publisher.error(p.getError());
-      } else {
-        publisher.complete();
-      }
-    });
-    return createCollection(publisher, Function.identity(), Optional.of(fold));
+    /**
+     * task publisher will have to wait with publishing next task until the the publisher from returned
+     * TaskCollection is done.
+     * - new publisher wrapper (with buffer) which can be "moved forward" by calling next()
+     *   it has to subscribe to original publisher
+     * - next() will be called by fold task - fold task will have a
+     */
+    return null;
   }
 
   public TaskCollection<T, R> forEach(final String desc, final Consumer<R> consumer) {
@@ -189,5 +202,14 @@ public abstract class TaskCollection<T, R> {
       }
     }), _predecessor);
   }
+
+  /**
+   * other operations proposal:
+   * first
+   * all
+   * partition
+   * split
+   * groupBy
+   */
 
 }

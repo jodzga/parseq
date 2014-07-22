@@ -122,7 +122,9 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
 
   static class Step<S> {
 
-    public enum Type { cont, done, fail, stop };
+    public enum Type {
+    	cont,
+    	done, fail, stop };
 
     private final S _value;
     private final Type _type;

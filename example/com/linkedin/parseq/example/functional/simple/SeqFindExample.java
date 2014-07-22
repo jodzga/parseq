@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.TaskCollection;
 import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
