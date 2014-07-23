@@ -16,8 +16,9 @@ import com.linkedin.parseq.stream.Subscriber;
 public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
 
   abstract void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask);
+  abstract void publishNext();
 
-  private Publisher<Task<T>> _tasks;
+  protected Publisher<Task<T>> _tasks;
   private boolean _streamingComplete = false;
   private int _totalTasks;
   private int _tasksCompleted = 0;
@@ -79,6 +80,9 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
                       _partialResult = null;
                       result.fail(step.getError());
                       break;
+                    case ignore:
+                      publishNext();
+                      break;
                   }
                 } catch (Throwable t) {
                   _streamingComplete = true;
@@ -123,8 +127,12 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
   static class Step<S> {
 
     public enum Type {
-    	cont,
-    	done, fail, stop };
+      cont,  //continue folding
+      done,  //finish folding with this value
+      fail,  //folding failed
+      stop,  //finish folding with last remembered value
+      ignore //ignore this step, move forward
+    };
 
     private final S _value;
     private final Type _type;
@@ -150,6 +158,10 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
 
     public static <S> Step<S> stop() {
       return new Step<S>(Type.stop, null, null);
+    }
+
+    public static <S> Step<S> ignore() {
+      return new Step<S>(Type.ignore, null, null);
     }
 
     public S getValue() {

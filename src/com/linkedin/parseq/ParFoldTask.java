@@ -37,4 +37,8 @@ import com.linkedin.parseq.stream.Publisher;
   void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask) {
     context.runSubTask(task, (Task<Object>) rootTask);
   }
+
+  @Override
+  void publishNext() {
+  }
 }

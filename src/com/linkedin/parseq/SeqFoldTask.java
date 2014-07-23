@@ -46,4 +46,12 @@ import com.linkedin.parseq.stream.Publisher;
     _prevTask = task;
   }
 
+  @SuppressWarnings("rawtypes")
+  @Override
+  void publishNext() {
+    if (_tasks instanceof SeqPublisher) {
+      ((SeqPublisher)_tasks).publishNext();
+    }
+  }
+
 }

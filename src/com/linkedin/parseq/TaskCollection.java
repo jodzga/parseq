@@ -72,7 +72,7 @@ public abstract class TaskCollection<T, R> {
   //TODO this probably does not make sense
   public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f) {
     final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
-    SeqPublisher<Task<T>> pub = new SeqPublisher<Task<T>>(_tasks);
+    SeqPublisher<Task<T>> pub = (_tasks instanceof SeqPublisher) ? (SeqPublisher<Task<T>>)_tasks : new SeqPublisher<Task<T>>(_tasks);
     final TaskCollection<T, R> lazyCollection = createCollection(pub, _foldF, _predecessor);
     final Task<?> fold = lazyCollection.map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
       publisher.next(e);
@@ -161,7 +161,7 @@ public abstract class TaskCollection<T, R> {
       if (predicate.test(r)) {
         return fr.apply(z, r);
       } else {
-        return Step.cont(z);
+        return Step.ignore();
       }
     }), _predecessor);
   }
