@@ -5,6 +5,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.linkedin.parseq.BaseFoldTask.Step;
+import com.linkedin.parseq.TaskCollection.TaskPublisher;
 import com.linkedin.parseq.stream.Publisher;
 
 
@@ -33,6 +34,40 @@ public class ParTaskCollection<T, R> extends TaskCollection<T, R> {
   @Override
   <Z> Task<Z> createFoldTask(String name, Z zero, BiFunction<Z, T, Step<Z>> op, Optional<Task<?>> predecessor) {
     return new ParFoldTask<Z, T>(name, _tasks, zero, op, predecessor);
+  }
+
+  @Override
+  public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f) {
+    final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
+    final Task<?> fold = map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
+      publisher.next(e);
+      return z;
+    });
+    fold.onResolve(p -> {
+      if (p.isFailed()) {
+        publisher.error(p.getError());
+      } else {
+        publisher.complete();
+      }
+    });
+    return createCollection(publisher, Function.identity(), Optional.of(fold));
+  }
+
+  @Override
+  public <A> TaskCollection<A, A> flatMap(String desc, Function<R, TaskCollection<?, A>> f) {
+    final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
+    final Task<?> fold = map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
+//      publisher.next(e);
+      return z;
+    });
+    fold.onResolve(p -> {
+      if (p.isFailed()) {
+        publisher.error(p.getError());
+      } else {
+        publisher.complete();
+      }
+    });
+    return createCollection(publisher, Function.identity(), Optional.of(fold));
   }
 
 }

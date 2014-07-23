@@ -18,7 +18,7 @@ import com.linkedin.parseq.stream.Subscriber;
 public abstract class TaskCollection<T, R> {
 
   protected final Publisher<Task<T>> _tasks;
-  private final Optional<Task<?>> _predecessor;
+  protected final Optional<Task<?>> _predecessor;
 
   /**
    * This function transforms folding function from the one which folds type R to the one
@@ -50,7 +50,7 @@ public abstract class TaskCollection<T, R> {
     return createCollection(_tasks, fa -> _foldF.apply((z, r) -> fa.apply(z, f.apply(r))), _predecessor);
   }
 
-  private static class TaskPublisher<A> implements Publisher<A> {
+  protected static class TaskPublisher<A> implements Publisher<A> {
     Subscriber<A> _subscriber;
     int count = 0;
     @Override
@@ -69,52 +69,9 @@ public abstract class TaskCollection<T, R> {
     }
   }
 
-  //TODO this probably does not make sense
-  public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f) {
-    final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
-    SeqPublisher<Task<T>> pub = (_tasks instanceof SeqPublisher) ? (SeqPublisher<Task<T>>)_tasks : new SeqPublisher<Task<T>>(_tasks);
-    final TaskCollection<T, R> lazyCollection = createCollection(pub, _foldF, _predecessor);
-    final Task<?> fold = lazyCollection.map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
-      publisher.next(e);
-      e.onResolve( p -> {
-        pub.publishNext();
-      });
-      return z;
-    });
-    fold.onResolve(p -> {
-      if (p.isFailed()) {
-        publisher.error(p.getError());
-      } else {
-        publisher.complete();
-      }
-    });
-    return createCollection(publisher, Function.identity(), Optional.of(fold));
-  }
+  abstract public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f);
 
-  /**
-   * TODO
-   * maybe:
-   * - separate hierarchies for SeqFoldTask and ParFoldTask, because ParFoldTask is much
-   *   simpler
-   * - for SeqFoldTask:
-   *   - change result of filter to something like "break" and in base fold task notify
-   *     publisher to release next task
-   *   - two modes???
-   *     - first: release next task every time
-   *     - second: release next task only on "break"
-   */
-
-  //TODO semantics of this method is clear
-  public <A> TaskCollection<A, A> flatMap(final String desc, final Function<R, TaskCollection<?, A>> f) {
-    /**
-     * task publisher will have to wait with publishing next task until the the publisher from returned
-     * TaskCollection is done.
-     * - new publisher wrapper (with buffer) which can be "moved forward" by calling next()
-     *   it has to subscribe to original publisher
-     * - next() will be called by fold task - fold task will have a
-     */
-    return null;
-  }
+  abstract public <A> TaskCollection<A, A> flatMap(final String desc, final Function<R, TaskCollection<?, A>> f);
 
   public TaskCollection<T, R> forEach(final String desc, final Consumer<R> consumer) {
     return map(desc, e -> {

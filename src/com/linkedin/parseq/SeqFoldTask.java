@@ -27,10 +27,13 @@ import com.linkedin.parseq.stream.Publisher;
 /* package private */ class SeqFoldTask<B, T> extends BaseFoldTask<B, T>
 {
   private Task<T> _prevTask;
+  private final SeqPublisher<?> _seqPublisher;
 
-  public SeqFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op, Optional<Task<?>> predecessor)
+  public SeqFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op, Optional<Task<?>> predecessor,
+      SeqPublisher<?> seqPublisher)
   {
     super(name, tasks, zero, op, predecessor);
+    _seqPublisher = seqPublisher;
   }
 
   @SuppressWarnings("unchecked")
@@ -46,11 +49,10 @@ import com.linkedin.parseq.stream.Publisher;
     _prevTask = task;
   }
 
-  @SuppressWarnings("rawtypes")
   @Override
   void publishNext() {
-    if (_tasks instanceof SeqPublisher) {
-      ((SeqPublisher)_tasks).publishNext();
+    if (_seqPublisher != null) {
+      _seqPublisher.publishNext();
     }
   }
 
