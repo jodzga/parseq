@@ -56,6 +56,11 @@ public class ParTaskCollection<T, R> extends TaskCollection<T, R> {
   @Override
   public <A> TaskCollection<A, A> flatMap(String desc, Function<R, TaskCollection<?, A>> f) {
     final TaskPublisher<Task<A>> publisher = new TaskPublisher<>();
+
+    /**
+     * need to create a fold task which will propagate data to
+     */
+
     final Task<?> fold = map(desc, f).fold(desc, Optional.empty(), (z, e) -> {
 //      publisher.next(e);
       return z;
