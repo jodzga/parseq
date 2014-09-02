@@ -16,6 +16,8 @@
 
 package com.linkedin.parseq.promise;
 
+import java.util.function.Function;
+
 /**
  * This class provides a set of static helper methods that make it easier to
  * work with {@link Promise}s.
@@ -73,9 +75,9 @@ public class Promises
    * @param dest the destination promise
    * @param <T> the value type for both promises
    */
-  public static <T, S extends T> void propagateResult(final Promise<S> source,
-                                         final SettablePromise<? super T> dest)
+  public static <T> void propagateResult(final Promise<T> source,
+                                         final SettablePromise<T> dest)
   {
-    source.addListener(new PropagateResultListener<T, S>(source, dest));
+    source.addListener(new TransformingPromiseListener<T, T>(dest, new PromiseTransformer<T, T>(Function.identity())));
   }
 }

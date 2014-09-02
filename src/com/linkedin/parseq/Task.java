@@ -18,20 +18,21 @@ package com.linkedin.parseq;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import com.linkedin.parseq.internal.InternalUtil;
+import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.internal.TaskLogger;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromiseListener;
+import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.promise.TransformingPromiseListener;
 import com.linkedin.parseq.trace.Related;
 import com.linkedin.parseq.trace.ShallowTrace;
 import com.linkedin.parseq.trace.Trace;
@@ -133,9 +134,8 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which will apply given function on result of successful completion of this task
    */
   default <R> Task<R> map(final String desc, final Function<T, R> f) {
-    final Task<T> that = this;
-    Task<R> result = Tasks.seq(that, Tasks.callable("map: " + desc, (ThrowableCallable<R>) () -> f.apply(that.get())));
-    return result;
+    return new FunctionalTask<T, R>(desc + "(" + getName() + ")", this,
+        new PromiseTransformer<T, R>(f));
   }
 
   /**
@@ -149,14 +149,18 @@ public interface Task<T> extends Promise<T>, Cancellable
    */
   default <R> Task<R> flatMap(final String desc, final Function<T, Task<R>> f) {
     final Task<T> that = this;
-    return Tasks.seq(that, new BaseTask<R>("flatMap: " + desc) {
+    return new SystemHiddenTask<R>(desc + "(" + getName() + ")") {
       @Override
-      protected Promise<R> run(Context context) throws Throwable {
-        Task<R> fm = f.apply(that.get());
-        context.run(fm);
-        return fm;
+      protected Promise<R> run(final Context context) throws Throwable {
+        final SettablePromise<R> result = Promises.settable();
+        context.run(that.andThen(desc, t -> {
+          Task<R> taskR = f.apply(t);
+          Promises.propagateResult(taskR, result);
+          context.run(taskR);
+        }));
+        return result;
       }
-    });
+    };
   }
 
   /**
@@ -168,12 +172,11 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task with the result of this Task
    */
   default Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    final Task<T> that = this;
-    return Tasks.seq(that, Tasks.callable("andThen: " + desc, (ThrowableCallable<T>) () -> {
-      T value = that.get();
-      consumer.accept(value);
-      return value;
-    }));
+    return new FunctionalTask<T, T>("andThen(" + getName() + ", "+ desc + ")", this,
+        new PromiseTransformer<T,T>(t -> {
+          consumer.accept(t);
+          return t;
+        }));
   }
 
   /**
@@ -187,14 +190,17 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task
    */
   default Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    final Task<T> that = this;
-    return Tasks.seq(that, Tasks.callable("recover: " + desc, (ThrowableCallable<T>) () -> {
-      if (that.isFailed()) {
-        return f.apply(that.getError());
+    return new FunctionalTask<T, T>("recover(" + getName() +", " + desc + ")", this, (src, dst) -> {
+      if (src.isFailed()) {
+        try {
+          dst.done(f.apply(src.getError()));
+        } catch (Throwable t) {
+          dst.fail(t);
+        }
       } else {
-        return that.get();
+        dst.done(src.get());
       }
-    }));
+    });
   }
 
   /**
@@ -210,19 +216,26 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task or cancellation
    */
   default Task<T> recoverWith(final String desc, final Function<Throwable, Task<T>> f) {
-    final Task<T> that = this;
-    return Tasks.seq(that, new BaseTask<T>("recoverWith: " + desc) {
+    return new SystemHiddenTask<T>("recoverWith(" + getName() +", " + desc + ")") {
       @Override
-      protected Promise<T> run(Context context) throws Throwable {
-        if (that.isFailed()) {
-          Task<T> recovery = f.apply(that.getError());
-          context.run(recovery);
-          return recovery;
-        } else {
-          return that;
-        }
+      protected Promise<T> run(final Context context) throws Throwable {
+        final SettablePromise<T> result = Promises.settable();
+        context.run(new FunctionalTask<T, T>("recoverWith(" + getName() +", " + desc + ")", this, (src, dst) -> {
+          if (src.isFailed()) {
+            try {
+              Task<T> recovery = f.apply(src.getError());
+              Promises.propagateResult(recovery, result);
+              context.run(recovery);
+            } catch (Throwable t) {
+              dst.fail(t);
+            }
+          } else {
+            dst.done(src.get());
+          }
+        }));
+        return result;
       }
-    });
+    };
   }
 
   /**
@@ -240,19 +253,32 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task or cancellation
    */
   default Task<T> fallBackTo(final String desc, final Function<Throwable, Task<T>> f) {
-    final Task<T> that = this;
-    return Tasks.seq(that, new BaseTask<T>("fallBackTo: " + desc) {
+    return new SystemHiddenTask<T>("fallBackTo(" + getName() +", " + desc + ")") {
       @Override
-      protected Promise<T> run(Context context) throws Throwable {
-        if (that.isFailed()) {
-          Task<T> recovery = f.apply(that.getError()).recoverWith("fallBackRecovery", x -> that);
-          context.run(recovery);
-          return recovery;
-        } else {
-          return that;
-        }
+      protected Promise<T> run(final Context context) throws Throwable {
+        final SettablePromise<T> result = Promises.settable();
+        context.run(new FunctionalTask<T, T>("fallBackTo(" + getName() +", " + desc + ")", this, (src, dst) -> {
+          if (src.isFailed()) {
+            try {
+              Task<T> recovery = f.apply(src.getError());
+              recovery.addListener(new TransformingPromiseListener<T, T>(result, (s, d) -> {
+                if (s.isFailed()) {
+                  d.fail(src.getError());  //this is the main difference from recoverWith: return original error
+                } else {
+                  d.done(s.get());
+                }
+              }));
+              context.run(recovery);
+            } catch (Throwable t) {
+              dst.fail(t);
+            }
+          } else {
+            dst.done(src.get());
+          }
+        }));
+        return result;
       }
-    });
+    };
   }
 
   /**
@@ -262,15 +288,14 @@ public interface Task<T> extends Promise<T>, Cancellable
    * have a TimeoutException. The wrapped task may be cancelled when a timeout
    * occurs.
    *
-   * @param desc description of a timeout function, it will show up in a trace
    * @param time the time to wait before timing out
    * @param unit the units for the time
    * @param <T> the value type for the task
    * @return the new Task with a timeout
    */
-  default Task<T> within(final String desc, final long time, final TimeUnit unit)
+  default Task<T> within(final long time, final TimeUnit unit)
   {
-    return new TimeoutWithErrorTask<T>("within: " + desc, time, unit, this);
+    return new TimeoutWithErrorTask<T>("within(" + getName() + ", " + time + ", " + unit + ")", time, unit, this);
   }
 
   /**
@@ -278,14 +303,13 @@ public interface Task<T> extends Promise<T>, Cancellable
    * the two. If either of tasks fail, then resulting task will also fail with
    * propagated Throwable. If both tasks fail, then resulting task fails with
    * MultiException containing Throwables from both tasks.
-   * @param desc description of a join function, it will show up in a trace
    * @param t Task this Task needs to join with
    * @param f function to be called on successful completion of both tasks
    * @return a new Task which will apply given function on result of successful completion of both tasks
    */
-  default <R, U> Task<U> join(final String desc, final Task<R> t, BiFunction<T, R, U> f) {
+  default <R, U> Task<U> join(final Task<R> t, BiFunction<T, R, U> f) {
     final Task<T> that = this;
-    return new BaseTask<U>("join: " + desc) {
+    return new BaseTask<U>("join(" + that.getName() + ", " + t.getName() + ")") {
       @Override
       protected Promise<? extends U> run(Context context) throws Throwable {
         final SettablePromise<U> result = Promises.settable();
@@ -309,16 +333,4 @@ public interface Task<T> extends Promise<T>, Cancellable
     };
   }
 
-  default Task<Optional<T>> filter(final String desc, Predicate<? super T> predicate) {
-    final Task<T> that = this;
-    Task<Optional<T>> result =
-        Tasks.seq(
-            that,
-            Tasks.callable("filter: " + desc,
-                (ThrowableCallable<Optional<T>>) () -> {
-
-                  return Optional.of(that.get()).filter(predicate);
-                }));
-    return result;
-  }
 }

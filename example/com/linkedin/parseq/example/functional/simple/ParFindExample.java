@@ -34,21 +34,21 @@ public class ParFindExample extends AbstractExample
 
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
-    Task<Optional<Optional<String>>> find =
-        Tasks.parColl(fetchSizes)
-          .filter("twitter only", s -> s.contains("twitter"))
-          .flatMapTask("flatMap", z -> {
-            return  Tasks.parColl(fetchList(httpClient, urls))
-                .find("linkedin", s -> s.contains("linkedin"));
-          }).find("find", o -> o.isPresent());
-
-    engine.run(find);
-
-    find.await();
-
-    System.out.println("found: " + find.get());
-
-    ExampleUtil.printTracingResults(find);
+//    Task<Optional<Optional<String>>> find =
+//        Tasks.parColl(fetchSizes)
+//          .filter("twitter only", s -> s.contains("twitter"))
+//          .flatMapTask("flatMap", z -> {
+//            return  Tasks.parColl(fetchList(httpClient, urls))
+//                .find("linkedin", s -> s.contains("linkedin"));
+//          }).find("find", o -> o.isPresent());
+//
+//    engine.run(find);
+//
+//    find.await();
+//
+//    System.out.println("found: " + find.get());
+//
+//    ExampleUtil.printTracingResults(find);
   }
 
   private List<Task<String>> fetchList(final MockService<String> httpClient, List<String> urls) {
@@ -56,7 +56,7 @@ public class ParFindExample extends AbstractExample
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within("200ms", 200, TimeUnit.MILLISECONDS)
+                 .within(200, TimeUnit.MILLISECONDS)
                  .recover("default", t -> ""))
         .collect(Collectors.toList());
     return fetchSizes;

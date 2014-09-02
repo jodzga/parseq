@@ -29,7 +29,7 @@ public class FunctionalDegradedExperienceExample extends AbstractExample
 
     final Task<Integer> fetchAndLength =
         fetchUrl(httpClient, "http://www.google.com", 100)
-          .within("timeout", 50, TimeUnit.MILLISECONDS)
+          .within(200, TimeUnit.MILLISECONDS)
           .recover("default", t -> "")
           .map("length", s -> s.length());
 

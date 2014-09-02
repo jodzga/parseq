@@ -6,12 +6,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.BaseFoldTask.Step;
+import com.linkedin.parseq.stream.AckValueImpl;
 import com.linkedin.parseq.stream.Publisher;
-import com.linkedin.parseq.stream.Subscriber;
+import com.linkedin.parseq.stream.PushablePublisher;
+import com.linkedin.parseq.transducer.Reducer;
+import com.linkedin.parseq.transducer.Reducer.Step;
+import com.linkedin.parseq.transducer.Transducer;
 
 /**
  * TODO add creating trace for functional operators without the need of creating new tasks
+ *
+ * TODO 1. verbs: yielding (to collection), emitting (to stream)
+ * 2. only final fold should call consume, which gets propagated back to the source publishers
  *
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
@@ -19,59 +25,69 @@ public abstract class TaskCollection<T, R> {
 
   protected final Publisher<Task<T>> _tasks;
   protected final Optional<Task<?>> _predecessor;
+  //TODO add name parameter
 
   /**
    * This function transforms folding function from the one which folds type R to the one
    * which folds type T.
    */
-  protected final Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> _foldF;
+  protected final Transducer<T, R> _transducer;
 
   protected TaskCollection(final Publisher<Task<T>> tasks,
-      Function<BiFunction<Object, R, Step<Object>>, BiFunction<Object, T, Step<Object>>> foldF,
+      Transducer<T, R> transducer,
       Optional<Task<?>> predecessor) {
     _tasks = tasks;
-    _foldF = foldF;
+    _transducer = transducer;
     _predecessor = predecessor;
   }
 
-  abstract <B, A> TaskCollection<B, A> createCollection(final Publisher<Task<B>> tasks,
-      Function<BiFunction<Object, A, Step<Object>>, BiFunction<Object, B, Step<Object>>> foldF,
+  abstract <A, B> TaskCollection<A, B> createCollection(final Publisher<Task<A>> tasks,
+      Transducer<A, B> transducer,
       Optional<Task<?>> predecessor);
 
-  abstract <Z> Task<Z> createFoldTask(String name, Z zero, final BiFunction<Z, T, Step<Z>> op,
+  abstract <Z> Task<Z> createFoldTask(String name, Z zero, final Reducer<Z, T> reducer,
       Optional<Task<?>> predecessor);
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  private <Z> Task<Z> createFoldFTask(String name, Z zero, final BiFunction<Z, R, Step<Z>> op) {
-    return createFoldTask(name, zero, (BiFunction<Z, T, Step<Z>>)((Function)_foldF).apply(op), _predecessor);
+  private <Z> Task<Z> createAckingFoldTask(String name, Z zero, final Reducer<Z, R> reducer) {
+    return createFoldTask(name, zero, acking(transduce(reducer)), _predecessor);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <Z> Reducer<Z, T> transduce(final Reducer<Z, R> reducer) {
+    return (Reducer<Z, T>)_transducer.apply((Reducer<Object, R>)reducer);
+  }
+
+  protected <Z, A> Reducer<Z, A> acking(final Reducer<Z, A> reducer) {
+    return (z, ackA) -> { ackA.ack(); return reducer.apply(z, ackA); };
+  }
+
+  public Task<?> publisherTask(final PushablePublisher<R> pushable) {
+    final Reducer<Object, T> reducer = transduce((z, ackR) -> {
+      pushable.next(ackR);
+      return Step.cont(z);
+    });
+    final Task<?> fold = createFoldTask("publishingReducer(TODO)", Optional.empty(), reducer, _predecessor);
+    fold.onResolve(p -> {
+      if (p.isFailed()) {
+        pushable.error(p.getError());
+      } else {
+        pushable.complete();
+      }
+    });
+    return fold;
   }
 
   public <A> TaskCollection<T, A> map(final String desc, final Function<R, A> f) {
-    return createCollection(_tasks, fa -> _foldF.apply((z, r) -> fa.apply(z, f.apply(r))), _predecessor);
+    return createCollection(_tasks, _transducer.map(ackR -> new AckValueImpl<A>(f.apply(ackR.get()), ackR.getAck())),
+        _predecessor);
   }
 
-  protected static class TaskPublisher<A> implements Publisher<A> {
-    Subscriber<A> _subscriber;
-    int count = 0;
-    @Override
-    public void subscribe(Subscriber<A> subscriber) {
-      _subscriber = subscriber;
-    }
-    public void next(A element) {
-      count++;
-      _subscriber.onNext(element);
-    }
-    public void complete() {
-      _subscriber.onComplete(count);
-    }
-    public void error(Throwable cause) {
-      _subscriber.onError(cause);
-    }
+  public <A> TaskCollection<A, A> flatMap(final String desc, final Function<R, TaskCollection<A, A>> f) {
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
+    Task<?> publisherTask = publisherTask(pushablePublisher);
+    Function<R, Publisher<Task<A>>> mapper = r -> f.apply(r)._tasks;
+    return createCollection(pushablePublisher.flatMap(mapper), a -> a, Optional.of(publisherTask));
   }
-
-  abstract public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f);
-
-  abstract public <A> TaskCollection<A, A> flatMap(final String desc, final Function<R, TaskCollection<?, A>> f);
 
   public TaskCollection<T, R> forEach(final String desc, final Consumer<R> consumer) {
     return map(desc, e -> {
@@ -81,7 +97,7 @@ public abstract class TaskCollection<T, R> {
   }
 
   public <Z> Task<Z> fold(final String name, final Z zero, final BiFunction<Z, R, Z> op) {
-    return createFoldFTask("fold: " + name, zero, (z, e) -> Step.cont(op.apply(z, e)));
+    return createAckingFoldTask("fold: " + name, zero, (z, e) -> Step.cont(op.apply(z, e.get())));
   }
 
   private static class BooleanHolder {
@@ -93,20 +109,20 @@ public abstract class TaskCollection<T, R> {
 
   public Task<R> reduce(final String name, final BiFunction<R, R, R> op) {
     final BooleanHolder first = new BooleanHolder(true);
-    return createFoldFTask("reduce: " + name, null, (z, e) -> {
+    return createAckingFoldTask("reduce: " + name, null, (z, e) -> {
       if (first._value) {
         first._value = false;
-        return Step.cont(e);
+        return Step.cont(e.get());
       } else {
-        return Step.cont(op.apply(z, e));
+        return Step.cont(op.apply(z, e.get()));
       }
     });
   }
 
   public Task<Optional<R>> find(final String name, final Predicate<R> predicate) {
-    return createFoldFTask("find: " + name, Optional.empty(), (z, e) -> {
-      if (predicate.test(e)) {
-        return Step.done(Optional.of(e));
+    return createAckingFoldTask("find: " + name, Optional.empty(), (z, e) -> {
+      if (predicate.test(e.get())) {
+        return Step.done(Optional.of(e.get()));
       } else {
         return Step.cont(z);
       }
@@ -114,50 +130,15 @@ public abstract class TaskCollection<T, R> {
   }
 
   public TaskCollection<T, R> filter(final String name, final Predicate<R> predicate) {
-    return createCollection(_tasks, fr -> _foldF.apply((z, r) -> {
-      if (predicate.test(r)) {
-        return fr.apply(z, r);
-      } else {
-        return Step.ignore();
-      }
-    }), _predecessor);
-  }
-
-  private static class Counter {
-    int _counter;
-    public Counter(int counter) {
-      _counter = counter;
-    }
-    int inc() {
-      _counter++;
-      return _counter;
-    }
+    return createCollection(_tasks, _transducer.filter(predicate), _predecessor);
   }
 
   public TaskCollection<T, R> take(final String name, final int n) {
-    final Counter counter = new Counter(0);
-    return createCollection(_tasks, fr -> _foldF.apply((z, r) -> {
-      Step<Object> step = fr.apply(z, r);
-      if (counter.inc() < n) {
-        return step;
-      } else {
-        if (step.getType() == Step.Type.cont) {
-          return Step.done(step.getValue());
-        } else {
-          return step;
-        }
-      }
-    }), _predecessor);
+    return createCollection(_tasks, _transducer.take(n), _predecessor);
   }
 
   public TaskCollection<T, R> takeWhile(final String name, final Predicate<R> predicate) {
-    return createCollection(_tasks, fr -> _foldF.apply((z, r) -> {
-      if (predicate.test(r)) {
-        return fr.apply(z, r);
-      } else {
-        return Step.stop();
-      }
-    }), _predecessor);
+    return createCollection(_tasks, _transducer.takeWhile(predicate), _predecessor);
   }
 
   /**

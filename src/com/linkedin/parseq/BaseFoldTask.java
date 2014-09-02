@@ -1,41 +1,44 @@
 package com.linkedin.parseq;
 
 import java.util.Optional;
-import java.util.function.BiFunction;
 
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.stream.AckValue;
+import com.linkedin.parseq.stream.AckValueImpl;
 import com.linkedin.parseq.stream.Publisher;
 import com.linkedin.parseq.stream.Subscriber;
+import com.linkedin.parseq.transducer.Reducer;
+import com.linkedin.parseq.transducer.Reducer.Step;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
 
-  abstract void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask);
-  abstract void publishNext();
+  abstract void scheduleTask(Task<T> task, Context context, Task<B> rootTask);
 
   protected Publisher<Task<T>> _tasks;
   private boolean _streamingComplete = false;
   private int _totalTasks;
   private int _tasksCompleted = 0;
   private B _partialResult;
-  private final BiFunction<B, T, Step<B>> _op;
+  private final Reducer<B, T> _reducer;
   private final Optional<Task<?>> _predecessor;
 
 
-  public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op,
-      Optional<Task<?>> predecessor)
-  {
+  public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero,
+      final Reducer<B, T> reducer, Optional<Task<?>> predecessor) {
     super(name);
     _partialResult = zero;
-    _op = op;
+    _reducer = reducer;
     _tasks = tasks;
     _predecessor = predecessor;
   }
+
+  //TODO: when result is resolved, then tasks should be early finished, not started
 
   @Override
   protected Promise<? extends B> run(final Context context) throws Exception
@@ -45,18 +48,20 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
 
     _tasks.subscribe(new Subscriber<Task<T>>() {
       @Override
-      public void onNext(Task<T> task) {
+      public void onNext(final AckValue<Task<T>> task) {
         if (!_streamingComplete) { //don't schedule tasks if streaming has finished e.g. by onError()
-          task.onResolve(p -> {
+          task.get().onResolve(p -> {
             _tasksCompleted++;
             if (!result.isDone()) {
               if (p.isFailed()) {
                 _streamingComplete = true;
                 _partialResult = null;
                 result.fail(p.getError());
+                task.ack();
               } else {
-                try {
-                  Step<B> step = _op.apply(_partialResult, p.get());
+                try {  //TODO who calls ack()?
+                  Step<B> step = _reducer.apply(_partialResult,
+                      new AckValueImpl<T>(p.get(), task.getAck()));
                   switch (step.getType()) {
                     case cont:
                       _partialResult = step.getValue();
@@ -70,19 +75,6 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
                       _partialResult = null;
                       _streamingComplete = true;
                       break;
-                    case stop:
-                      result.done(_partialResult);
-                      _partialResult = null;
-                      _streamingComplete = true;
-                      break;
-                    case fail:
-                      _streamingComplete = true;
-                      _partialResult = null;
-                      result.fail(step.getError());
-                      break;
-                    case ignore:
-                      publishNext();
-                      break;
                   }
                 } catch (Throwable t) {
                   _streamingComplete = true;
@@ -90,9 +82,13 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
                   result.fail(t);
                 }
               }
+            } else {
+              task.ack();
             }
           });
-          scheduleNextTask(task, context, that);
+          scheduleTask(task.get(), context, that);
+        } else {
+          task.ack();
         }
       }
 
@@ -112,10 +108,6 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
       }
     });
 
-    /**
-     * This might be a bit counter intuitive, but we first need to subscribe to
-     * stream of tasks and then run task, which is publisher of for that source.
-     */
     if (_predecessor.isPresent()) {
       context.run(_predecessor.get());
     }
@@ -123,59 +115,4 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
     _tasks = null;
     return result;
   }
-
-  static class Step<S> {
-
-    public enum Type {
-      cont,  //continue folding
-      done,  //finish folding with this value
-      fail,  //folding failed
-      stop,  //finish folding with last remembered value
-      ignore //ignore this step, move forward
-    };
-
-    private final S _value;
-    private final Type _type;
-    private final Throwable _error;
-
-    private Step(Type type, S value, Throwable error) {
-      _type = type;
-      _value = value;
-      _error = error;
-    }
-
-    public static <S> Step<S> cont(S value) {
-      return new Step<S>(Type.cont, value, null);
-    }
-
-    public static <S> Step<S> done(S value) {
-      return new Step<S>(Type.done, value, null);
-    }
-
-    public static <S> Step<S> fail(Throwable t) {
-      return new Step<S>(Type.fail, null, t);
-    }
-
-    public static <S> Step<S> stop() {
-      return new Step<S>(Type.stop, null, null);
-    }
-
-    public static <S> Step<S> ignore() {
-      return new Step<S>(Type.ignore, null, null);
-    }
-
-    public S getValue() {
-      return _value;
-    }
-
-    public Type getType() {
-      return _type;
-    }
-
-    public Throwable getError() {
-      return _error;
-    }
-
-  }
-
 }

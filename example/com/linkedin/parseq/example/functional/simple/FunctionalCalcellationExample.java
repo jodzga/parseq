@@ -1,13 +1,12 @@
 /* $Id$ */
 package com.linkedin.parseq.example.functional.simple;
 
-import static com.linkedin.parseq.example.common.ExampleUtil.*;
+import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 import java.util.concurrent.TimeUnit;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
@@ -30,7 +29,7 @@ public class FunctionalCalcellationExample extends AbstractExample
 
     final Task<Integer> fetchAndLength =
         fetchUrl(httpClient, "http://www.google.com", 10000)
-          .within("timeout", 5000, TimeUnit.MILLISECONDS)
+          .within(5000, TimeUnit.MILLISECONDS)
           .recover("default", t -> "")
           .map("length", s -> s.length())
           .andThen("big bang", x -> System.exit(1));

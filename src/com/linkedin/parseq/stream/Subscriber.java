@@ -9,7 +9,7 @@ public interface Subscriber<T> {
    * the Subscriber has signaled demand for via the corresponding {@link Subscription Subscription}.
    * @param element The element that is passed from publisher to subscriber.
    */
-  public void onNext(T element);
+  public void onNext(AckValue<T> element);
 
   /**
    * The {@link Publisher Publisher} calls this method in order to signal that it terminated normally.

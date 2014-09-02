@@ -239,6 +239,8 @@ public class ContextImpl implements Context, Cancellable
   {
     boolean result = _task.cancel(reason);
     //run the task to capture the trace data
+    //TODO this is dubious idea: running task to get a trace
+    //shouldn't we just add trace?
     _task.contextRun(this, _planContext.getTaskLogger(), _parent, _predecessorTasks);
     return result;
   }

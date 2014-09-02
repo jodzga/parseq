@@ -28,20 +28,20 @@ public class FunctionalJoinExample extends AbstractExample
 
     final Task<String> fetchString =
         fetchUrl(httpClient, "http://www.first.com", 100)
-          .within("timeout", 500, TimeUnit.MILLISECONDS)
+          .within(500, TimeUnit.MILLISECONDS)
           .recover("default", t -> "");
 
     final Task<Integer> fetchInt =
         fetchUrl(httpClient, "http://www.second.com", 100)
-          .within("timeout", 50, TimeUnit.MILLISECONDS)
+          .within(50, TimeUnit.MILLISECONDS)
           .recover("default", t -> "")
           .map("length", s -> s.length());
 
-    final Task<String> combined = fetchString.join("combine", fetchInt, (s, x) -> "combined: " + s + ", " + x);
+    final Task<String> combined = fetchString.join(fetchInt, (s, x) -> "combined: " + s + ", " + x);
 
     //add side effect e.g. println
     final Task<?> action = combined.andThen("print", System.out::println);
-    
+
     engine.run(action);
 
     action.await();

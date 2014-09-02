@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * scheduled executor will hold a reference to the task - even if it has been
  * cancelled - thus keeping a path to the task from a GC root.
  *
+ * TODO understand how this works and verify that it is expected
+ *
  * @author Chris Pettitt
  */
 /* package private */ class IndirectDelayedExecutor implements DelayedExecutor

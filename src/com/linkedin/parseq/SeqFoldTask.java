@@ -17,9 +17,9 @@
 package com.linkedin.parseq;
 
 import java.util.Optional;
-import java.util.function.BiFunction;
 
 import com.linkedin.parseq.stream.Publisher;
+import com.linkedin.parseq.transducer.Reducer;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
@@ -27,18 +27,17 @@ import com.linkedin.parseq.stream.Publisher;
 /* package private */ class SeqFoldTask<B, T> extends BaseFoldTask<B, T>
 {
   private Task<T> _prevTask;
-  private final SeqPublisher<?> _seqPublisher;
 
-  public SeqFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero, final BiFunction<B, T, Step<B>> op, Optional<Task<?>> predecessor,
-      SeqPublisher<?> seqPublisher)
-  {
-    super(name, tasks, zero, op, predecessor);
-    _seqPublisher = seqPublisher;
+
+  public SeqFoldTask(String name, Publisher<Task<T>> tasks, B zero, Reducer<B, T> reducer,
+      Optional<Task<?>> predecessor) {
+    super(name, tasks, zero, reducer, predecessor);
   }
+
 
   @SuppressWarnings("unchecked")
   @Override
-  void scheduleNextTask(Task<T> task, Context context, Task<B> rootTask) {
+  void scheduleTask(Task<T> task, Context context, Task<B> rootTask) {
     if (_prevTask != null) {
       //sequence tasks
       context.afterTask((Task<Object>)rootTask, _prevTask).run(task);
@@ -47,13 +46,6 @@ import com.linkedin.parseq.stream.Publisher;
       context.runSubTask(task, (Task<Object>)rootTask);
     }
     _prevTask = task;
-  }
-
-  @Override
-  void publishNext() {
-    if (_seqPublisher != null) {
-      _seqPublisher.publishNext();
-    }
   }
 
 }

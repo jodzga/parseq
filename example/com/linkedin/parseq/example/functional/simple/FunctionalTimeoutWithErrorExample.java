@@ -27,7 +27,7 @@ public class FunctionalTimeoutWithErrorExample extends AbstractExample
     final MockService<String> httpClient = getService();
 
     final Task<String> fetchWithTimeout = fetchUrl(httpClient, "http://www.google.com")
-                                            .within("timeout", 50, TimeUnit.MILLISECONDS);
+                                            .within(50, TimeUnit.MILLISECONDS);
 
     engine.run(fetchWithTimeout);
 

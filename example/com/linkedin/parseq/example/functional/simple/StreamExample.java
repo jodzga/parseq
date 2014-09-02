@@ -29,22 +29,22 @@ public class StreamExample extends AbstractExample
   {
     final MockService<String> httpClient = getService();
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
-    
+
     /**
      * Calculate average response length of a list of urls.
      * All fetches are done in parallel with specified timeout
-     * and fall-back default value. 
+     * and fall-back default value.
      */
-    Task<Double> fetchSizes = 
+    Task<Double> fetchSizes =
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within("100ms", 100, TimeUnit.MILLISECONDS)
+                 .within(100, TimeUnit.MILLISECONDS)
                  .recover("default", t -> "")
                  .<Integer>map("length", s -> s.length()))
         .collect(Tasks.toPar())
         .map("average", list -> list.stream().mapToInt(x -> x).average().getAsDouble());
-    
+
     engine.run(fetchSizes);
 
     fetchSizes.await();

@@ -13,7 +13,7 @@ public class IterablePublisher<T> implements Publisher<T> {
     try {
       int i = 0;
       for (T e : _elements) {
-        subscriber.onNext(e);
+        subscriber.onNext(new AckValueImpl<T>(e));
         i++;
       }
       subscriber.onComplete(i);
