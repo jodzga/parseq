@@ -25,7 +25,7 @@ public class PromiseTransformer<S, T> implements PromisePropagator<S, T> {
   }
 
   @Override
-  public <R> PromisePropagator<S, R> map(final Function<T, R> f) {
+  public <R> PromiseTransformer<S, R> map(final Function<T, R> f) {
     return new PromiseTransformer<S, R>(_transform.andThen(f));
   }
 }

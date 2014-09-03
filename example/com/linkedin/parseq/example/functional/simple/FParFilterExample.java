@@ -37,9 +37,7 @@ public class FParFilterExample extends AbstractExample
     Task<Optional<String>> find =
         Tasks.parColl(fetchSizes)
           .filter("google only", s -> s.contains("google"))
-          .flatMap("flatMap", z -> Tasks.parColl(fetchList(httpClient, urls))
-                .filter("linkedin", s -> s.contains("linkedin")))
-          .find("find linkedin", s -> s.contains("linkedin"));
+          .find("find google", s -> s.contains("google"));
 
     engine.run(find);
 
@@ -55,7 +53,7 @@ public class FParFilterExample extends AbstractExample
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within(200, TimeUnit.MILLISECONDS)
+                 .within(100, TimeUnit.MILLISECONDS)
                  .recover("default", t -> ""))
         .collect(Collectors.toList());
     return fetchSizes;

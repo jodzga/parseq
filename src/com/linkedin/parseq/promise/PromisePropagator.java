@@ -1,6 +1,7 @@
 package com.linkedin.parseq.promise;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface PromisePropagator<S, T> extends BiConsumer<Promise<S>, Settable<T>> {
@@ -24,4 +25,12 @@ public interface PromisePropagator<S, T> extends BiConsumer<Promise<S>, Settable
       });
     };
   }
+
+  default PromisePropagator<S, T> andThen(final Consumer<T> consumer) {
+    return map(x -> {
+      consumer.accept(x);
+      return x;
+    });
+  }
+
 }

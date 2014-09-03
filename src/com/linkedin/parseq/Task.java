@@ -42,6 +42,8 @@ import com.linkedin.parseq.trace.Trace;
  * separate tasks for each of them (performance reasons).
  * This requires improved tracing so that functions can be part of task trace.
  *
+ * TODO safety of operations which return task - promise listeners etc.
+ *
  * A task represents a deferred execution that also contains its resulting
  * value. In addition, tasks include some tracing information that can be
  * used with various trace printers.
@@ -260,7 +262,7 @@ public interface Task<T> extends Promise<T>, Cancellable
         context.run(new FunctionalTask<T, T>("fallBackTo(" + getName() +", " + desc + ")", this, (src, dst) -> {
           if (src.isFailed()) {
             try {
-              Task<T> recovery = f.apply(src.getError());
+              Task<T> recovery = f.apply(src.getError());  //TODO get rid of TransformingPromiseListener
               recovery.addListener(new TransformingPromiseListener<T, T>(result, (s, d) -> {
                 if (s.isFailed()) {
                   d.fail(src.getError());  //this is the main difference from recoverWith: return original error
@@ -299,6 +301,9 @@ public interface Task<T> extends Promise<T>, Cancellable
   }
 
   /**
+   * TODO use after
+   * 
+   * 
    * Combines this Task with passed in Task and calls function on a result of
    * the two. If either of tasks fail, then resulting task will also fail with
    * propagated Throwable. If both tasks fail, then resulting task fails with

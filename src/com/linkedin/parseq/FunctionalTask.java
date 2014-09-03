@@ -1,36 +1,25 @@
 package com.linkedin.parseq;
 
-import java.util.Collection;
-import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.linkedin.parseq.internal.TaskLogger;
-import com.linkedin.parseq.promise.DelegatingPromise;
+import com.linkedin.parseq.internal.SystemHiddenTask;
+import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromisePropagator;
+import com.linkedin.parseq.promise.PromiseResolvedException;
 import com.linkedin.parseq.promise.Promises;
+import com.linkedin.parseq.promise.Settable;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.linkedin.parseq.promise.TransformingPromiseListener;
-import com.linkedin.parseq.trace.Related;
-import com.linkedin.parseq.trace.ShallowTrace;
-import com.linkedin.parseq.trace.Trace;
 
-public class FunctionalTask<S, T>  extends DelegatingPromise<T> implements Task<T> {
+public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
 
-  private final Task<S> _task;
   private PromisePropagator<S, T> _propagator;
-  private final String _name;
-  private final SettablePromise<T> _promise;
+  private final Task<S> _task;
 
-  public FunctionalTask(final String name, final Task<S> task, PromisePropagator<S, T> propagator) {
-    this(name, task, propagator, Promises.<T>settable());
-  }
-
-  public FunctionalTask(final String name, final Task<S> task, PromisePropagator<S, T> propagator, SettablePromise<T> promise) {
-    super(promise);
-    _promise = promise;
-    _task = task;
+  public FunctionalTask(final String name, Task<S> task, PromisePropagator<S, T> propagator) {
+    super(name);
     _propagator = propagator;
-    _name = name;
+    _task = task;
   }
 
   //TODO implement all other default methods from Task
@@ -41,47 +30,47 @@ public class FunctionalTask<S, T>  extends DelegatingPromise<T> implements Task<
   }
 
   @Override
-  public boolean cancel(Exception reason) {
-    return _task.cancel(reason);
+  public Task<T> andThen(final String desc, final Consumer<T> consumer) {
+    return new FunctionalTask<S, T>("andThen(" + getName() + ", "+ desc + ")", _task,
+        _propagator.andThen(consumer));
   }
 
   @Override
-  public String getName() {
-    return _name;
+  public Task<T> recover(final String desc, final Function<Throwable, T> f) {
+    return new FunctionalTask<S, T>("recover(" + getName() +", " + desc + ")", _task, (src, dst) -> {
+      _propagator.accept(src, new Settable<T>() {
+        @Override
+        public void done(T value) throws PromiseResolvedException {
+          dst.done(value);
+        }
+        @Override
+        public void fail(Throwable error) throws PromiseResolvedException {
+          try {
+            dst.done(f.apply(error));
+          } catch (Throwable t) {
+            dst.fail(t);
+          }
+        }
+      });
+    });
   }
 
   @Override
-  public int getPriority() {
-    return _task.getPriority();
-  }
-
-  @Override
-  public boolean setPriority(int priority) {
-    return _task.setPriority(priority);
-  }
-
-  @Override
-  public void contextRun(Context context, TaskLogger taskLogger, Task<?> parent, Collection<Task<?>> predecessors) {
-    if (!_promise.isDone()) {
-      _task.addListener(new TransformingPromiseListener<S, T>(_promise, _propagator));
-      _task.contextRun(context, taskLogger, parent, predecessors);
-    }
-  }
-
-  @Override
-  public ShallowTrace getShallowTrace() {
-    return _task.getShallowTrace();
-  }
-
-  @Override
-  public Trace getTrace() {
-    //TODO
-    return _task.getTrace();
-  }
-
-  @Override
-  public Set<Related<Task<?>>> getRelationships() {
-    //TODO
-    return _task.getRelationships();
+  protected Promise<? extends T> run(Context context) throws Throwable {
+    final SettablePromise<T> result = Promises.settable();
+    context.after(_task).run(new BaseTask<T>(FunctionalTask.this.getName()) {
+      @Override
+      protected Promise<? extends T> run(Context context) throws Throwable {
+        try {
+          _propagator.accept(_task, result);
+          return result;
+        } catch (Throwable t) {
+          result.fail(t);
+          return result;
+        }
+      }
+    });
+    context.run(_task);
+    return result;
   }
 }

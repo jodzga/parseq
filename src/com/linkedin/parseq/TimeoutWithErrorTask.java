@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
     _time = time;
     _unit = unit;
     _task = task;
+    setPriority(task.getPriority());
   }
 
   @Override
@@ -68,8 +69,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
       }
     });
 
-    //TODO if work queue is long and SLAs are tight  then creating timeout here is too early
+    //timeout tasks should run as early as possible
+    timeoutTask.setPriority(Priority.MIN_PRIORITY);
     context.createTimer(_time, _unit, timeoutTask);
+
+    //set priority of the task for which we just scheduled timeout
+    //to be executed next, unless there exist other tasks with higher priority
+    //e.g. other timeouts
+    _task.setPriority(earlierPriority(getPriority()));
     context.run(_task);
 
     _task.addListener(new PromiseListener<T>()
@@ -85,5 +92,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
     });
 
     return result;
+  }
+
+  private static int earlierPriority(int priority) {
+    if (priority == Priority.MIN_PRIORITY) {
+      return Priority.MIN_PRIORITY;
+    } else {
+      return priority -1;
+    }
   }
 }

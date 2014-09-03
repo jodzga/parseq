@@ -36,10 +36,10 @@ public class SeqFilterExample extends AbstractExample
 
     Task<Optional<String>> find =
         Tasks.seqColl(fetchSizes)
-          //.filter("google only", s -> s.contains("google"))
-          .flatMap("flatMap", z -> Tasks.seqColl(fetchList(httpClient, urls)))
-                //.filter("linkedin", s -> s.contains("linkedin")))
-          .find("find linkedin", s -> s.contains("linkedin"));
+//          .filter("google only", s -> s.contains("google"))
+          .flatMap("flatMap", z -> Tasks.seqColl(fetchList(httpClient, urls))
+                .filter("twitter", s -> s.contains("twitter")))
+          .find("find twitter", s -> s.contains("twitter"));
 
     engine.run(find);
 
@@ -47,7 +47,7 @@ public class SeqFilterExample extends AbstractExample
 
     System.out.println("found: " + find.get());
 
-    //ExampleUtil.printTracingResults(find);
+    ExampleUtil.printTracingResults(find);
   }
 
   private List<Task<String>> fetchList(final MockService<String> httpClient, List<String> urls) {
