@@ -36,10 +36,10 @@ public class ParFilterExample extends AbstractExample
 
     Task<Optional<String>> find =
         Tasks.parColl(fetchSizes)
-          .filter("google only", s -> s.contains("google"))
+//          .filter("google only", s -> s.contains("google"))
           .flatMap("flatMap", z -> Tasks.parColl(fetchList(httpClient, urls))
-                .filter("linkedin", s -> s.contains("linkedin")))
-          .find("find linkedin", s -> s.contains("linkedin"));
+                .filter("twitter", s -> s.contains("twitter")))
+          .find("find twitter", s -> s.contains("twitter"));
 
     engine.run(find);
 

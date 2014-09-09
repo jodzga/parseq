@@ -4,6 +4,8 @@ import java.util.Optional;
 
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
+import com.linkedin.parseq.promise.PromisePropagator;
+import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.linkedin.parseq.stream.AckValue;
@@ -27,6 +29,7 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
   private B _partialResult;
   private final Reducer<B, T> _reducer;
   private final Optional<Task<?>> _predecessor;
+  private final String _name;
 
 
   public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero,
@@ -36,9 +39,10 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
     _reducer = reducer;
     _tasks = tasks;
     _predecessor = predecessor;
+    _name = name;
   }
 
-  //TODO: when result is resolved, then tasks should be early finished, not started
+  //TODO: when result is resolved, then tasks should be early finished, not started?
 
   @Override
   protected Promise<? extends B> run(final Context context) throws Exception
@@ -47,47 +51,65 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
     final Task<B> that = this;
 
     _tasks.subscribe(new Subscriber<Task<T>>() {
+
+      /**
+       * It is expected that onNext method is called
+       * from within Task's run method.
+       */
       @Override
       public void onNext(final AckValue<Task<T>> task) {
-        if (!_streamingComplete) { //don't schedule tasks if streaming has finished e.g. by onError()
-          task.get().onResolve(p -> {
-            _tasksCompleted++;
-            if (!result.isDone()) {
-              if (p.isFailed()) {
-                _streamingComplete = true;
-                _partialResult = null;
-                result.fail(p.getError());
-                task.ack();
-              } else {
-                try {  //TODO who calls ack()?
-                  Step<B> step = _reducer.apply(_partialResult,
-                      new AckValueImpl<T>(p.get(), task.getAck()));
-                  switch (step.getType()) {
-                    case cont:
-                      _partialResult = step.getValue();
-                      if (_streamingComplete && _tasksCompleted == _totalTasks) {
-                        result.done(_partialResult);
-                        _partialResult = null;
-                      }
-                      break;
-                    case done:
-                      result.done(step.getValue());
-                      _partialResult = null;
+        if (!_streamingComplete) {
+          scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
+          //TODO propagator doens't have to be created every time?
+              (p, t) -> {
+                try
+                {
+                  _tasksCompleted++;
+                  if (!result.isDone()) {
+                    if (p.isFailed()) {
                       _streamingComplete = true;
-                      break;
+                      _partialResult = null;
+                      result.fail(p.getError());
+                      task.ack();
+                    } else {
+                      try {
+                        //ack() is called by reducer
+                        Step<B> step = _reducer.apply(_partialResult, new AckValueImpl<T>(p.get(), task.getAck()));
+                        switch (step.getType()) {
+                          case cont:
+                            _partialResult = step.getValue();
+                            if (_streamingComplete && _tasksCompleted == _totalTasks) {
+                              result.done(_partialResult);
+                              _partialResult = null;
+                            }
+                            break;
+                          case done:
+                            result.done(step.getValue());
+                            _partialResult = null;
+                            _streamingComplete = true;
+                            break;
+                        }
+                      } catch (Throwable e) {
+                        _streamingComplete = true;
+                        _partialResult = null;
+                        result.fail(e);
+                      }
+                    }
+                  } else {
+                    //result is resolved, just ack() the task
+                    task.ack();
                   }
-                } catch (Throwable t) {
-                  _streamingComplete = true;
-                  _partialResult = null;
-                  result.fail(t);
+                } finally {
+                  //propagate result
+                  if (p.isFailed()) {
+                    t.fail(p.getError());
+                  } else {
+                    t.done(p.get());
+                  }
                 }
-              }
-            } else {
-              task.ack();
-            }
-          });
-          scheduleTask(task.get(), context, that);
+              } ), context, that);
         } else {
+
           task.ack();
         }
       }

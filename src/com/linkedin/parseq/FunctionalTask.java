@@ -58,7 +58,7 @@ public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
   @Override
   protected Promise<? extends T> run(Context context) throws Throwable {
     final SettablePromise<T> result = Promises.settable();
-    context.after(_task).run(new BaseTask<T>(FunctionalTask.this.getName()) {
+    context.after(_task).run(new SystemHiddenTask<T>(FunctionalTask.this.getName()) {
       @Override
       protected Promise<? extends T> run(Context context) throws Throwable {
         try {
