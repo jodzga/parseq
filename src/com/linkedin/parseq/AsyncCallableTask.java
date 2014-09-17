@@ -68,21 +68,13 @@ public class AsyncCallableTask<R> extends BaseTask<R>
     }
 
     final SettablePromise<R> promise = Promises.settable();
-    executor.execute(new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          try
-          {
-            promise.done(_syncJob.call());
-          }
-          catch (Throwable t)
-          {
-            promise.fail(t);
-          }
-        }
-      });
+    executor.execute(() -> {
+      try {
+        promise.done(_syncJob.call());
+      } catch (Throwable t) {
+        promise.fail(t);
+      }
+    });
     return promise;
   }
 }

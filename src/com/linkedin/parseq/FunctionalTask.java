@@ -22,7 +22,10 @@ public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
     _task = task;
   }
 
-  //TODO implement all other default methods from Task
+  @Override
+  public <R> Task<R> apply(String desc, PromisePropagator<T,R> propagator) {
+    return new FunctionalTask<S, R>(desc, _task, _propagator.compose(propagator));
+  };
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {

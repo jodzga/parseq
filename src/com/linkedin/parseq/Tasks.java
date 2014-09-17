@@ -369,44 +369,6 @@ public class Tasks
   }
 
   /**
-   * Creates a new task that wraps the given task. If the given task finishes
-   * before the timeout occurs then this task takes on the value of the task.
-   * If the task does not complete in the given time then this task will
-   * have a TimeoutException. The wrapped task may be cancelled when a timeout
-   * occurs.
-   *
-   * @param time the time to wait before timing out
-   * @param unit the units for the time
-   * @param task the task to wrap
-   * @param <T> the value type for the task
-   * @return the new timeout task
-   */
-  public static <T> Task<T> timeoutWithError(final long time, final TimeUnit unit,
-                                             final Task<T> task)
-  {
-    return timeoutWithError("timeoutWithError", time, unit, task);
-  }
-
-  /**
-   * This method is similar to {@link #timeoutWithError(long, java.util.concurrent.TimeUnit, Task)},
-   * but it also takes a name that will be set on the returned task.
-   *
-   * @param name the name of this task
-   * @param time the time to wait before timing out
-   * @param unit the units for the time
-   * @param task the task to wrap
-   * @param <T> the value type for the task
-   * @return the new timeout task
-   * @see #timeoutWithError(long, java.util.concurrent.TimeUnit, Task)
-   */
-  public static <T> Task<T> timeoutWithError(final String name,
-                                             final long time, final TimeUnit unit,
-                                             final Task<T> task)
-  {
-    return new TimeoutWithErrorTask<T>(name, time, unit, task);
-  }
-
-  /**
    * Creates a new task that will run the given array of tasks sequentially
    * (e.g. tasks[0] will be finished before tasks[1] is run). <strong>This
    * method is not type-safe</strong> - prefer one of the {@code seq} options

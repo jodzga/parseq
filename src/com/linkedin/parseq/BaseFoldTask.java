@@ -1,11 +1,10 @@
 package com.linkedin.parseq;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
-import com.linkedin.parseq.promise.PromisePropagator;
-import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.linkedin.parseq.stream.AckValue;
@@ -18,7 +17,7 @@ import com.linkedin.parseq.transducer.Reducer.Step;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
+public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> implements FoldTask<B> {
 
   abstract void scheduleTask(Task<T> task, Context context, Task<B> rootTask);
 
@@ -50,8 +49,9 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
     final SettablePromise<B> result = Promises.settable();
     final Task<B> that = this;
 
-    _tasks.subscribe(new Subscriber<Task<T>>() {
+    //TODO schedule task which resolves promise with _partialResult ('within' impl)
 
+    _tasks.subscribe(new Subscriber<Task<T>>() {
       /**
        * It is expected that onNext method is called
        * from within Task's run method.
@@ -60,7 +60,6 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
       public void onNext(final AckValue<Task<T>> task) {
         if (!_streamingComplete) {
           scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
-          //TODO propagator doens't have to be created every time?
               (p, t) -> {
                 try
                 {
@@ -109,7 +108,6 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
                 }
               } ), context, that);
         } else {
-
           task.ack();
         }
       }
@@ -118,7 +116,10 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
       public void onComplete(int totalTasks) {
         _streamingComplete = true;
         _totalTasks = totalTasks;
-        //TODO check if this can be resolved
+        if (_tasksCompleted == _totalTasks) {
+          result.done(_partialResult);
+          _partialResult = null;
+        }
       }
 
       @Override
@@ -137,4 +138,12 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> {
     _tasks = null;
     return result;
   }
+
+  @Override
+  public FoldTask<B> within(long time, TimeUnit unit) {
+    // TODO Auto-generated method stub
+
+    return null;
+  }
+
 }

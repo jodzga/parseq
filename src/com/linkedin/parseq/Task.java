@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,6 +31,7 @@ import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.internal.TaskLogger;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromiseListener;
+import com.linkedin.parseq.promise.PromisePropagator;
 import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -101,6 +104,7 @@ public interface Task<T> extends Promise<T>, Cancellable
   void contextRun(Context context, TaskLogger taskLogger,
                   Task<?> parent, Collection<Task<?>> predecessors);
 
+  void wrapContextRun(ContextRunWrapper<T> wrapper);
 
   /**
    * Returns the ShallowTrace for this task. The ShallowTrace will be
@@ -127,6 +131,10 @@ public interface Task<T> extends Promise<T>, Cancellable
    */
   Set<Related<Task<?>>> getRelationships();
 
+  default <R> Task<R> apply(final String desc, final PromisePropagator<T, R> propagator) {
+    return new FunctionalTask<T, R>(desc, this, propagator);
+  }
+
   /**
    * Creates a new Task by applying a function to the successful result of this Task.
    * If this Task is completed with an exception then the new Task will also contain that exception.
@@ -136,8 +144,7 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which will apply given function on result of successful completion of this task
    */
   default <R> Task<R> map(final String desc, final Function<T, R> f) {
-    return new FunctionalTask<T, R>(desc + "(" + getName() + ")", this,
-        new PromiseTransformer<T, R>(f));
+    return apply(desc + "(" + getName() + ")", new PromiseTransformer<T, R>(f));
   }
 
   /**
@@ -174,7 +181,7 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task with the result of this Task
    */
   default Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return new FunctionalTask<T, T>("andThen(" + getName() + ", "+ desc + ")", this,
+    return apply("andThen(" + getName() + ", "+ desc + ")",
         new PromiseTransformer<T,T>(t -> {
           consumer.accept(t);
           return t;
@@ -192,7 +199,7 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task
    */
   default Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return new FunctionalTask<T, T>("recover(" + getName() +", " + desc + ")", this, (src, dst) -> {
+    return apply("recover(" + getName() +", " + desc + ")",  (src, dst) -> {
       if (src.isFailed()) {
         try {
           dst.done(f.apply(src.getError()));
@@ -222,7 +229,7 @@ public interface Task<T> extends Promise<T>, Cancellable
       @Override
       protected Promise<T> run(final Context context) throws Throwable {
         final SettablePromise<T> result = Promises.settable();
-        context.run(new FunctionalTask<T, T>("recoverWith(" + getName() +", " + desc + ")", this, (src, dst) -> {
+        context.run(apply("recoverWith(" + getName() +", " + desc + ")", (src, dst) -> {
           if (src.isFailed()) {
             try {
               Task<T> recovery = f.apply(src.getError());
@@ -259,7 +266,7 @@ public interface Task<T> extends Promise<T>, Cancellable
       @Override
       protected Promise<T> run(final Context context) throws Throwable {
         final SettablePromise<T> result = Promises.settable();
-        context.run(new FunctionalTask<T, T>("fallBackTo(" + getName() +", " + desc + ")", this, (src, dst) -> {
+        context.run(apply("fallBackTo(" + getName() +", " + desc + ")", (src, dst) -> {
           if (src.isFailed()) {
             try {
               Task<T> recovery = f.apply(src.getError());  //TODO get rid of TransformingPromiseListener
@@ -283,27 +290,59 @@ public interface Task<T> extends Promise<T>, Cancellable
     };
   }
 
+  static class TimeoutContextRunWrapper<T> implements ContextRunWrapper<T> {
+
+    protected final SettablePromise<T> _result = Promises.settable();
+    protected final AtomicBoolean _committed = new AtomicBoolean();
+    private final long _time;
+    private final TimeUnit _unit;
+
+    public TimeoutContextRunWrapper(long time, TimeUnit unit) {
+      _time = time;
+      _unit = unit;
+    }
+
+    @Override
+    public void before(Context context) {
+      final Task<?> timeoutTask = Tasks.action("timeoutTimer", () -> {
+        if (_committed.compareAndSet(false, true)) {
+          _result.fail(new TimeoutException());
+        }
+      });
+      //timeout tasks should run as early as possible
+      timeoutTask.setPriority(Priority.MAX_PRIORITY);
+      context.createTimer(_time, _unit, timeoutTask);
+    }
+
+    @Override
+    public Promise<T> after(Context context, Promise<T> promise) {
+      promise.addListener(p -> {
+        if (_committed.compareAndSet(false, true)) {
+          Promises.propagateResult(promise, _result);
+        }
+      });
+      return _result;
+    }
+  }
+
   /**
-   * Creates a new task that wraps this task. If this task finishes
-   * before the timeout occurs then wrapped task takes on the value of this task.
-   * If this task does not complete in the given time then wrapped task will
-   * have a TimeoutException. The wrapped task may be cancelled when a timeout
-   * occurs.
+   * TODO document
    *
    * @param time the time to wait before timing out
    * @param unit the units for the time
    * @param <T> the value type for the task
    * @return the new Task with a timeout
    */
-  default Task<T> within(final long time, final TimeUnit unit)
+  default Task<T> withTimeout(final long time, final TimeUnit unit)
   {
-    return new TimeoutWithErrorTask<T>("within(" + getName() + ", " + time + ", " + unit + ")", time, unit, this);
+    wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit));
+    return this;
   }
 
   /**
    * TODO use after
-   * 
-   * 
+   *
+   *
    * Combines this Task with passed in Task and calls function on a result of
    * the two. If either of tasks fail, then resulting task will also fail with
    * propagated Throwable. If both tasks fail, then resulting task fails with
@@ -337,5 +376,30 @@ public interface Task<T> extends Promise<T>, Cancellable
       }
     };
   }
+
+  public interface ContextRunWrapper<T> {
+
+    void before(Context context);
+
+    Promise<T> after(Context context, Promise<T> promise);
+
+    default ContextRunWrapper<T> compose(final ContextRunWrapper<T> wrapper) {
+      ContextRunWrapper<T> that = this;
+      return new ContextRunWrapper<T>() {
+
+        @Override
+        public void before(Context context) {
+          wrapper.before(context);
+          that.before(context);
+        }
+
+        @Override
+        public Promise<T> after(Context context, Promise<T> promise) {
+          return wrapper.after(context, that.after(context, promise));
+        }
+      };
+    }
+  }
+
 
 }

@@ -99,10 +99,10 @@ public class TestTasks extends BaseEngineTest
   }
 
   @Test
-  public void testTimeoutTaskWithTimeout() throws InterruptedException
+  public void testTaskWithTimeout() throws InterruptedException
   {
     // This task will not complete on its own, which allows us to test the timeout
-    final Task<String> task = new BaseTask<String>("task")
+    final Task<String> timeoutTask = new BaseTask<String>("task")
     {
       @Override
       protected Promise<? extends String> run(
@@ -110,9 +110,7 @@ public class TestTasks extends BaseEngineTest
       {
         return Promises.settable();
       }
-    };
-
-    final Task<String> timeoutTask = Tasks.timeoutWithError(200, TimeUnit.MILLISECONDS, task);
+    }.withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
 
@@ -121,36 +119,26 @@ public class TestTasks extends BaseEngineTest
     assertTrue(timeoutTask.isFailed());
     assertTrue(timeoutTask.getError() instanceof TimeoutException);
 
-    assertTrue(task.await(5, TimeUnit.SECONDS));
-
-    // The original task should also be failed - this time with an early finish
-    // exception.
-    assertTrue(task.isFailed());
-    assertTrue(task.getError() instanceof EarlyFinishException);
+    assertTrue(timeoutTask.await(5, TimeUnit.SECONDS));
   }
 
   @Test
-  public void testTimeoutTaskWithoutTimeout() throws InterruptedException
+  public void testWithoutTimeout() throws InterruptedException
   {
     final String value = "value";
-    final Task<String> task = Tasks.callable("task", new Callable<String>()
+    final Task<String> timeoutTask = Tasks.callable("task", new Callable<String>()
     {
       @Override
       public String call() throws Exception
       {
         return value;
       }
-    });
-
-    final Task<String> timeoutTask = Tasks.timeoutWithError(200, TimeUnit.MILLISECONDS, task);
+    }).withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
 
     assertTrue(timeoutTask.await(5, TimeUnit.SECONDS));
 
-    assertEquals(value, task.get());
-
-    // The wrapping task should get the same value as the wrapped task
     assertEquals(value, timeoutTask.get());
   }
 
@@ -158,16 +146,14 @@ public class TestTasks extends BaseEngineTest
   public void testTimeoutTaskWithError() throws InterruptedException
   {
     final Exception error = new Exception();
-    final Task<String> task = Tasks.callable("task", new Callable<String>()
+    final Task<String> timeoutTask = Tasks.callable("task", new Callable<String>()
     {
       @Override
       public String call() throws Exception
       {
         throw error;
       }
-    });
-
-    final Task<String> timeoutTask = Tasks.timeoutWithError(2000, TimeUnit.MILLISECONDS, task);
+    }).withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
 
@@ -178,16 +164,10 @@ public class TestTasks extends BaseEngineTest
     assertEquals(error, timeoutTask.getError());
   }
 
-  /**
-   * Test scenario in which there are many TimeoutWithErrorTasks scheduled for execution
-   * e.g. by using Tasks.par().
-   */
-  @Test
-  public void testManyTimeoutTaskWithoutTimeoutOnAQueeu() throws InterruptedException, IOException
+
+  private Task<?> testManyTimeoutTaskWithoutTimeoutOnAQueeuRound(ScheduledExecutorService scheduler) throws InterruptedException, IOException
   {
     final String value = "value";
-    final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
     List<Task<String>> tasks = new ArrayList<Task<String>>();
     for (int i = 0; i < 50; i++) {
 
@@ -206,9 +186,8 @@ public class TestTasks extends BaseEngineTest
           }, 5, TimeUnit.MILLISECONDS);
           return result;
         }
-      };
-      // add 50ms timeout for the task
-      tasks.add(Tasks.timeoutWithError(50, TimeUnit.MILLISECONDS, t));
+      }.withTimeout(50, TimeUnit.MILLISECONDS);
+      tasks.add(t);
     }
 
     // final task runs all the tasks in parallel
@@ -217,6 +196,28 @@ public class TestTasks extends BaseEngineTest
     getEngine().run(timeoutTask);
 
     assertTrue(timeoutTask.await(5, TimeUnit.SECONDS));
+
+    return timeoutTask;
+
+  }
+
+  /**
+   * Test scenario in which there are many TimeoutWithErrorTasks scheduled for execution
+   * e.g. by using Tasks.par().
+   */
+  @Test
+  public void testManyTimeoutTaskWithoutTimeoutOnAQueeu() throws InterruptedException, IOException
+  {
+    final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    /**
+     * warm up lambdas
+     * this test is time sensitive, if it is executed in isolation or as a first test in a suite
+     * then jvm is cold and it may take even 50ms to warm it up (including resolving all lambdas)
+     */
+    testManyTimeoutTaskWithoutTimeoutOnAQueeuRound(scheduler);
+
+    Task<?> timeoutTask = testManyTimeoutTaskWithoutTimeoutOnAQueeuRound(scheduler);
 
     scheduler.shutdown();
 

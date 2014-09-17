@@ -56,7 +56,7 @@ public class ParFindExample extends AbstractExample
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within(200, TimeUnit.MILLISECONDS)
+                 .withTimeout(200, TimeUnit.MILLISECONDS)
                  .recover("default", t -> ""))
         .collect(Collectors.toList());
     return fetchSizes;

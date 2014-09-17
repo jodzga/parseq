@@ -39,7 +39,7 @@ public class StreamExample extends AbstractExample
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within(100, TimeUnit.MILLISECONDS)
+                 .withTimeout(100, TimeUnit.MILLISECONDS)
                  .recover("default", t -> "")
                  .<Integer>map("length", s -> s.length()))
         .collect(Tasks.toPar())

@@ -53,7 +53,7 @@ public class FParFilterExample extends AbstractExample
       urls.stream()
         .map(url ->
               fetchUrl(httpClient, url)
-                 .within(100, TimeUnit.MILLISECONDS)
+                 .withTimeout(100, TimeUnit.MILLISECONDS)
                  .recover("default", t -> ""))
         .collect(Collectors.toList());
     return fetchSizes;

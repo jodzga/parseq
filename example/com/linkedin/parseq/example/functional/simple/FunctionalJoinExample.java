@@ -28,12 +28,12 @@ public class FunctionalJoinExample extends AbstractExample
 
     final Task<String> fetchString =
         fetchUrl(httpClient, "http://www.first.com", 100)
-          .within(500, TimeUnit.MILLISECONDS)
+          .withTimeout(500, TimeUnit.MILLISECONDS)
           .recover("default", t -> "");
 
     final Task<Integer> fetchInt =
         fetchUrl(httpClient, "http://www.second.com", 100)
-          .within(50, TimeUnit.MILLISECONDS)
+          .withTimeout(50, TimeUnit.MILLISECONDS)
           .recover("default", t -> "")
           .map("length", s -> s.length());
 

@@ -29,7 +29,7 @@ public class FunctionalCalcellationExample extends AbstractExample
 
     final Task<Integer> fetchAndLength =
         fetchUrl(httpClient, "http://www.google.com", 10000)
-          .within(5000, TimeUnit.MILLISECONDS)
+          .withTimeout(5000, TimeUnit.MILLISECONDS)
           .recover("default", t -> "")
           .map("length", s -> s.length())
           .andThen("big bang", x -> System.exit(1));

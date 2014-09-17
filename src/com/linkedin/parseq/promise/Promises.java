@@ -37,9 +37,7 @@ public class Promises
    */
   public static <T> Promise<T> value(final T value)
   {
-    final SettablePromise<T> promise = settable();
-    promise.done(value);
-    return promise;
+    return new ResolvedValue<T>(value);
   }
 
   /**
@@ -51,9 +49,7 @@ public class Promises
    */
   public static <T> Promise<T> error(final Throwable error)
   {
-    final SettablePromise<T> promise = settable();
-    promise.fail(error);
-    return promise;
+    return new ResolvedError<T>(error);
   }
 
   /**
