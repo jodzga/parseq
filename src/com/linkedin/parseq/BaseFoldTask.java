@@ -2,8 +2,8 @@ package com.linkedin.parseq;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -17,7 +17,7 @@ import com.linkedin.parseq.transducer.Reducer.Step;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> implements FoldTask<B> {
+public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask<B> {
 
   abstract void scheduleTask(Task<T> task, Context context, Task<B> rootTask);
 
@@ -48,8 +48,6 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> implements 
   {
     final SettablePromise<B> result = Promises.settable();
     final Task<B> that = this;
-
-    //TODO schedule task which resolves promise with _partialResult ('within' impl)
 
     _tasks.subscribe(new Subscriber<Task<T>>() {
       /**
@@ -139,11 +137,46 @@ public abstract class BaseFoldTask<B, T> extends SystemHiddenTask<B> implements 
     return result;
   }
 
+  class WithinContextRunWrapper implements ContextRunWrapper<B> {
+
+    protected final SettablePromise<B> _result = Promises.settable();
+    protected final AtomicBoolean _committed = new AtomicBoolean();
+    private final long _time;
+    private final TimeUnit _unit;
+
+    public WithinContextRunWrapper(long time, TimeUnit unit) {
+      _time = time;
+      _unit = unit;
+    }
+
+    @Override
+    public void before(Context context) {
+      final Task<?> withinTask = Tasks.action("withinTimer", () -> {
+        if (_committed.compareAndSet(false, true)) {
+          _streamingComplete = true;
+          _result.done(_partialResult);
+        }
+      });
+      //within tasks should run as early as possible
+      withinTask.setPriority(Priority.MAX_PRIORITY);
+      context.createTimer(_time, _unit, withinTask);
+    }
+
+    @Override
+    public Promise<B> after(Context context, Promise<B> promise) {
+      promise.addListener(p -> {
+        if (_committed.compareAndSet(false, true)) {
+          Promises.propagateResult(promise, _result);
+        }
+      });
+      return _result;
+    }
+  }
+
   @Override
   public FoldTask<B> within(long time, TimeUnit unit) {
-    // TODO Auto-generated method stub
-
-    return null;
+    wrapContextRun(new WithinContextRunWrapper(time, unit));
+    return this;
   }
 
 }
