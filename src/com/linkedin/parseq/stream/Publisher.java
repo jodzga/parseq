@@ -20,6 +20,34 @@ public interface Publisher<T> {
    */
   void subscribe(Subscriber<T> subscriber);
 
+  default <R> Publisher<R> map(final Function<T, R> f) {
+    final Publisher<T> that = this;
+    return new Publisher<R>() {
+      @Override
+      public void subscribe(final Subscriber<R> subscriber) {
+        that.subscribe(new Subscriber<T>() {
+
+          @Override
+          public void onNext(final AckValue<T> element) {
+            subscriber.onNext(element.map(f));
+          }
+
+          @Override
+          public void onComplete(final int totalTasks) {
+            subscriber.onComplete(totalTasks);
+          }
+
+          @Override
+          public void onError(Throwable cause) {
+            subscriber.onError(cause);
+          }
+
+        });
+      }
+
+    };
+  }
+
   default <R> Publisher<R> flatMap(final Function<T, Publisher<R>> f) {
     final Publisher<T> that = this;
     return new Publisher<R>() {
@@ -36,7 +64,7 @@ public interface Publisher<T> {
            *
            * TODO probably don't need to create new subscriber every time
            */
-          private void subscribe(Publisher<R> publisher, Runnable ack) {
+          private void subscribe(Publisher<R> publisher, Ack ack) {
             publisher.subscribe(new Subscriber<R>() {
 
               @Override
@@ -45,14 +73,14 @@ public interface Publisher<T> {
                 if (_sourceDone) {
                   _publishers = null;
                   subscriber.onComplete(_count);
-                  ack.run();
+                  ack.ack();
                 }
               }
 
               @Override
               public void onError(Throwable cause) {
-                ack.run();
                 subscriber.onError(cause);
+                ack.ack();
               }
 
               @Override

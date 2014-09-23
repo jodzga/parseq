@@ -8,7 +8,6 @@ import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.linkedin.parseq.stream.AckValue;
-import com.linkedin.parseq.stream.AckValueImpl;
 import com.linkedin.parseq.stream.Publisher;
 import com.linkedin.parseq.stream.Subscriber;
 import com.linkedin.parseq.transducer.Reducer;
@@ -71,7 +70,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask
                     } else {
                       try {
                         //ack() is called by reducer
-                        Step<B> step = _reducer.apply(_partialResult, new AckValueImpl<T>(p.get(), task.getAck()));
+                        Step<B> step = _reducer.apply(_partialResult, new AckValue<T>(p.get(), task.getAck()));
                         switch (step.getType()) {
                           case cont:
                             _partialResult = step.getValue();

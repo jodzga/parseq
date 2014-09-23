@@ -49,16 +49,21 @@ public class SeqPublisher<T> implements Publisher<T>, Subscriber<T> {
     _subscriber.onError(cause);
   }
 
+  private void onAck() {
+    if (_pending.isEmpty()) {
+      _publishPending = true;
+    } else {
+      doPublishNext();
+    }
+  }
+
+  private Ack thisOnAck() {
+    return this::onAck;
+  }
+
   private void doPublishNext() {
     final AckValue<T> v = _pending.poll();
-    _subscriber.onNext(new AckValueImpl<T>(v.get(), () -> {
-      if (_pending.isEmpty()) {
-        _publishPending = true;
-      } else {
-        doPublishNext();
-      }
-      v.getAck().run();
-    }));
+    _subscriber.onNext(new AckValue<T>(v.get(), thisOnAck().andThen(v.getAck())));
     _publishPending = false;
     _published++;
     if (_completed && _published == _total) {

@@ -1,12 +1,13 @@
 package com.linkedin.parseq;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.stream.AckValueImpl;
 import com.linkedin.parseq.stream.Publisher;
 import com.linkedin.parseq.stream.PushablePublisher;
 import com.linkedin.parseq.transducer.Reducer;
@@ -61,11 +62,14 @@ public abstract class TaskCollection<T, R> {
     return (z, ackA) -> { ackA.ack(); return reducer.apply(z, ackA); };
   }
 
+  //TODO here we already publish values
+  //this is something client could interact with
   public Task<?> publisherTask(final PushablePublisher<R> pushable) {
     final Reducer<Object, T> reducer = transduce((z, ackR) -> {
       pushable.next(ackR);
       return Step.cont(z);
     });
+    //TODO task name
     final Task<?> fold = createFoldTask("publishingReducer(TODO)", Optional.empty(), reducer, _predecessor);
     fold.onResolve(p -> {
       if (p.isFailed()) {
@@ -78,8 +82,14 @@ public abstract class TaskCollection<T, R> {
   }
 
   public <A> TaskCollection<T, A> map(final String desc, final Function<R, A> f) {
-    return createCollection(_tasks, _transducer.map(ackR -> new AckValueImpl<A>(f.apply(ackR.get()), ackR.getAck())),
+    return createCollection(_tasks, _transducer.map(ackR -> ackR.map(f)),
         _predecessor);
+  }
+
+  public <A> TaskCollection<A, A> flatMapTask(final String desc, final Function<R, Task<A>> f) {
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
+    Task<?> publisherTask = publisherTask(pushablePublisher);
+    return createCollection(pushablePublisher.map(f), a -> a, Optional.of(publisherTask));
   }
 
   public <A> TaskCollection<A, A> flatMap(final String desc, final Function<R, TaskCollection<A, A>> f) {
@@ -119,6 +129,21 @@ public abstract class TaskCollection<T, R> {
     });
   }
 
+  public Task<R> first() {
+    return createAckingFoldTask("first", null, (z, r) -> Step.done(r.get()));
+  }
+
+  public Task<R> last() {
+    return createAckingFoldTask("last", null, (z, r) -> Step.cont(r.get()));
+  }
+
+  public Task<List<R>> all() {
+    return createAckingFoldTask("last", new ArrayList<R>(), (z, r) -> {
+      z.add(r.get());
+      return Step.cont(z);
+    });
+  }
+
   public Task<Optional<R>> find(final String name, final Predicate<R> predicate) {
     return createAckingFoldTask("find: " + name, Optional.empty(), (z, e) -> {
       if (predicate.test(e.get())) {
@@ -142,9 +167,19 @@ public abstract class TaskCollection<T, R> {
   }
 
   /**
+   * buffering (time and count)
+   */
+
+  /**
+   * API: parFun, seqFun ???
+   */
+
+  /**
+   * toSeq - example writing to disk, sending via webSocket etc.
+   */
+
+  /**
    * other operations proposal:
-   * first
-   * all
    * partition
    * split
    * groupBy
