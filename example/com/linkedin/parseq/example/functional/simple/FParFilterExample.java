@@ -1,11 +1,12 @@
 /* $Id$ */
 package com.linkedin.parseq.example.functional.simple;
 
+import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.Task;
@@ -13,8 +14,6 @@ import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
-
-import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
@@ -32,12 +31,13 @@ public class FParFilterExample extends AbstractExample
     final MockService<String> httpClient = getService();
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
-    List<Task<String>> fetchSizes = fetchList(httpClient, urls);
-
     Task<Optional<String>> find =
-        Tasks.parColl(fetchSizes)
-          .filter("google only", s -> s.contains("google"))
-          .find("find google", s -> s.contains("google"));
+        Tasks.syncCall(urls)
+          .flatMapTaskPar(url -> fetchUrl(httpClient, url)
+                                  .withTimeout(100, TimeUnit.MILLISECONDS)
+                                  .recover("default", t -> ""))
+            .filter(s -> s.contains("google"))
+            .find(s -> s.contains("google"));
 
     engine.run(find);
 
@@ -47,16 +47,4 @@ public class FParFilterExample extends AbstractExample
 
     ExampleUtil.printTracingResults(find);
   }
-
-  private List<Task<String>> fetchList(final MockService<String> httpClient, List<String> urls) {
-    List<Task<String>> fetchSizes =
-      urls.stream()
-        .map(url ->
-              fetchUrl(httpClient, url)
-                 .withTimeout(100, TimeUnit.MILLISECONDS)
-                 .recover("default", t -> ""))
-        .collect(Collectors.toList());
-    return fetchSizes;
-  }
-
 }

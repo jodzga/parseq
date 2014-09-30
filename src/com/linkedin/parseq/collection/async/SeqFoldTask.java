@@ -14,27 +14,39 @@
  * the License.
  */
 
-package com.linkedin.parseq;
+package com.linkedin.parseq.collection.async;
 
 import java.util.Optional;
 
+import com.linkedin.parseq.Context;
+import com.linkedin.parseq.Task;
 import com.linkedin.parseq.stream.Publisher;
 import com.linkedin.parseq.transducer.Reducer;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-/* package private */ class ParFoldTask<B, T> extends BaseFoldTask<B, T>
+public class SeqFoldTask<B, T> extends BaseFoldTask<B, T>
 {
-  public ParFoldTask(String name, Publisher<Task<T>> tasks, B zero, Reducer<B, T> reducer,
+  private Task<T> _prevTask;
+
+  public SeqFoldTask(String name, Publisher<Task<T>> tasks, B zero, Reducer<B, T> reducer,
       Optional<Task<?>> predecessor) {
     super(name, tasks, zero, reducer, predecessor);
   }
 
+
   @SuppressWarnings("unchecked")
   @Override
   void scheduleTask(Task<T> task, Context context, Task<B> rootTask) {
-    context.runSubTask(task, (Task<Object>) rootTask);
+    if (_prevTask != null) {
+      //sequence tasks
+      context.afterTask((Task<Object>)rootTask, _prevTask).run(task);
+    } else {
+      //run only the first task
+      context.runSubTask(task, (Task<Object>)rootTask);
+    }
+    _prevTask = task;
   }
 
 }

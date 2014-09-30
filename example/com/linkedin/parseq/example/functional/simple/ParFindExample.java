@@ -36,11 +36,11 @@ public class ParFindExample extends AbstractExample
 
     Task<Optional<Optional<String>>> find =
         Tasks.parColl(fetchSizes)
-          .filter("twitter only", s -> s.contains("twitter"))
-          .flatMapTask("flatMap", z -> {
+          .filter(s -> s.contains("twitter"))
+          .flatMapTask(z -> {
             return  Tasks.parColl(fetchList(httpClient, urls))
-                .find("linkedin", s -> s.contains("linkedin"));
-          }).find("find", o -> o.isPresent());
+                .find(s -> s.contains("linkedin"));
+          }).find(o -> o.isPresent());
 
     engine.run(find);
 

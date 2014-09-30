@@ -37,9 +37,9 @@ public class SeqFilterExample extends AbstractExample
     Task<Optional<String>> find =
         Tasks.seqColl(fetchSizes)
 //          .filter("google only", s -> s.contains("google"))
-          .flatMap("flatMap", z -> Tasks.seqColl(fetchList(httpClient, urls))
-                .filter("twitter", s -> s.contains("twitter")))
-          .find("find twitter", s -> s.contains("twitter"));
+          .flatMap(z -> Tasks.seqColl(fetchList(httpClient, urls))
+                .filter(s -> s.contains("twitter")))
+          .find(s -> s.contains("twitter"));
 
     engine.run(find);
 

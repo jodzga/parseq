@@ -6,6 +6,7 @@ import java.util.function.Predicate;
 
 import com.linkedin.parseq.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer.Step;
+import com.linkedin.parseq.util.Integers;
 
 @FunctionalInterface
 public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<Object, T>> {
@@ -48,15 +49,35 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
   }
 
   default Transducer<T, R> take(final int n) {
+    Integers.requireNonNegative(n);
+    if (n == 0) {
+      return fr -> this.apply((z, r) -> {
+          r.ack();
+          return Step.done(z);
+      });
+    }
     final Counter counter = new Counter(0);
     return fr -> this.apply((z, r) -> {
-      if (n == 0) {
-        r.ack();
-        return Step.done(z);
-      } else if (counter.inc() < n) {
+      if (counter.inc() < n) {
         return fr.apply(z, r);
       } else {
         return Step.done(fr.apply(z, r).getValue());
+      }
+    });
+  }
+
+  default Transducer<T, R> drop(final int n) {
+    Integers.requireNonNegative(n);
+    if (n == 0) {
+      return this;
+    }
+    final Counter counter = new Counter(0);
+    return fr -> this.apply((z, r) -> {
+      if (counter.inc() < n) {
+        r.ack();
+        return Step.cont(z);
+      } else {
+        return fr.apply(z, r);
       }
     });
   }
@@ -72,12 +93,42 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
     });
   }
 
+  static final class Trap {
+    boolean _closed = false;
+    void trigger() {
+      _closed = true;
+    }
+    boolean closed() {
+      return _closed;
+    }
+  }
+
+  default Transducer<T, R> dropWhile(final Predicate<R> predicate) {
+    final Trap trap = new Trap();
+    return fr -> this.apply((z, r) -> {
+      if (!trap.closed())
+      {
+        if (predicate.test(r.get())) {
+          r.ack();
+          return Step.cont(z);
+        } else {
+         trap.trigger();
+        }
+      }
+      return fr.apply(z, r);
+    });
+  }
+
   /**
    * other operations proposal:
-   * all
+   * drop
+   * dropWhile
+   *
    * partition
    * split
    * groupBy
+   *
+   * grouped(n)
    */
 
 }

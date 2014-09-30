@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +31,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import com.linkedin.parseq.collection.async.ParCollection;
+import com.linkedin.parseq.collection.async.SeqCollection;
+import com.linkedin.parseq.collection.sync.SyncCollection;
 import com.linkedin.parseq.promise.PromiseListener;
 import com.linkedin.parseq.stream.IterablePublisher;
 import com.linkedin.parseq.transducer.Transducer;
@@ -449,15 +453,20 @@ public class Tasks
   }
 
   //TODO temporary, for testing only
-  public static <T> TaskCollection<T, T> seqColl(final Iterable<Task<T>> tasks)
+  public static <T> SeqCollection<T, T> seqColl(final Iterable<Task<T>> tasks)
   {
-    return SeqTaskCollection.fromTasks(new IterablePublisher<>(tasks));
+    return new SeqCollection<T, T>(x -> x, new IterablePublisher<>(tasks), Optional.empty());
   }
 
   //TODO temporary, for testing only
-  public static <T> TaskCollection<T, T> parColl(final Iterable<Task<T>> tasks)
+  public static <T> ParCollection<T, T> parColl(final Iterable<Task<T>> tasks)
   {
-    return ParTaskCollection.fromTasks(new IterablePublisher<>(tasks));
+    return new ParCollection<T, T>(x -> x, new IterablePublisher<>(tasks), Optional.empty());
+  }
+
+  public static <T> SyncCollection<T, T> syncCall(final Iterable<T> input)
+  {
+    return new SyncCollection<T, T>(x -> x, new IterablePublisher<>(input));
   }
 
 }

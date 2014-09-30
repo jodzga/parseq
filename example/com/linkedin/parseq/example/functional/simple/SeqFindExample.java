@@ -36,11 +36,11 @@ public class SeqFindExample extends AbstractExample
 
     Task<Optional<Optional<String>>> find =
         Tasks.seqColl(fetchSizes)
-          .filter("google only", s -> s.contains("google"))
-          .flatMapTask("flatMap", z -> {
+          .filter(s -> s.contains("google"))
+          .flatMapTask(z -> {
             return  Tasks.seqColl(fetchList(httpClient, urls))
-                .find("linkedin", s -> s.contains("linkedin"));
-          }).find("nonempty", o -> o.isPresent());
+                .find(s -> s.contains("linkedin"));
+          }).find(o -> o.isPresent());
 
     engine.run(find);
 

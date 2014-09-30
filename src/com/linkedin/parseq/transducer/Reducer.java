@@ -11,7 +11,7 @@ public interface Reducer<Z, T> extends BiFunction<Z, AckValue<T>, Reducer.Step<Z
 
     public enum Type {
       cont,  //continue folding
-      done  //finish folding with this value
+      done  //finish folding with value calculated so far
     };
 
     private final S _value;
