@@ -7,9 +7,9 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.linkedin.parseq.Collections;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
@@ -35,10 +35,10 @@ public class ParFindExample extends AbstractExample
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
     Task<Optional<Optional<String>>> find =
-        Tasks.parColl(fetchSizes)
+        Collections.par(fetchSizes)
           .filter(s -> s.contains("twitter"))
           .flatMapTask(z -> {
-            return  Tasks.parColl(fetchList(httpClient, urls))
+            return  Collections.par(fetchList(httpClient, urls))
                 .find(s -> s.contains("linkedin"));
           }).find(o -> o.isPresent());
 

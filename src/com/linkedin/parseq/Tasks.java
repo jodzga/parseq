@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -31,11 +30,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-import com.linkedin.parseq.collection.async.ParCollection;
-import com.linkedin.parseq.collection.async.SeqCollection;
-import com.linkedin.parseq.collection.sync.SyncCollection;
 import com.linkedin.parseq.promise.PromiseListener;
-import com.linkedin.parseq.stream.IterablePublisher;
 import com.linkedin.parseq.transducer.Transducer;
 
 /**
@@ -413,60 +408,6 @@ public class Tasks
       taskList.add(typedTask);
     }
     return par(taskList);
-  }
-
-  /**
-   * Returns a Collector that accumulates number of input {@code Task<T>} into a
-   * new {@code ParTask<T>}. The resulting parallel Task is resolved with the
-   * {@code List<T>} containing results of all input Tasks.
-   * @return Collector that accumulates number of input {@code Task<T>} into a
-   * new {@code ParTask<T>}.
-   */
-  public static <T> Collector<Task<T>, List<Task<T>>, ParTask<T>> toPar() {
-    return new Collector<Task<T>, List<Task<T>>, ParTask<T>>() {
-
-      @Override
-      public Supplier<List<Task<T>>> supplier() {
-        return (Supplier<List<Task<T>>>) ArrayList::new;
-      }
-
-      @Override
-      public BiConsumer<List<Task<T>>, Task<T>> accumulator() {
-        return (left, right) -> left.add(right);
-      }
-
-      @Override
-      public BinaryOperator<List<Task<T>>> combiner() {
-        return (left, right) -> { left.addAll(right); return left; };
-      }
-
-      @Override
-      public Function<List<Task<T>>, ParTask<T>> finisher() {
-        return tasks -> new ParTaskImpl<>("toPar", tasks);
-      }
-
-      @Override
-      public Set<java.util.stream.Collector.Characteristics> characteristics() {
-        return Collections.emptySet();
-      }
-    };
-  }
-
-  //TODO temporary, for testing only
-  public static <T> SeqCollection<T, T> seqColl(final Iterable<Task<T>> tasks)
-  {
-    return new SeqCollection<T, T>(x -> x, new IterablePublisher<>(tasks), Optional.empty());
-  }
-
-  //TODO temporary, for testing only
-  public static <T> ParCollection<T, T> parColl(final Iterable<Task<T>> tasks)
-  {
-    return new ParCollection<T, T>(x -> x, new IterablePublisher<>(tasks), Optional.empty());
-  }
-
-  public static <T> SyncCollection<T, T> syncCall(final Iterable<T> input)
-  {
-    return new SyncCollection<T, T>(x -> x, new IterablePublisher<>(input));
   }
 
 }

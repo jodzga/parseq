@@ -26,6 +26,9 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.linkedin.parseq.function.Failure;
+import com.linkedin.parseq.function.Success;
+import com.linkedin.parseq.function.Try;
 import com.linkedin.parseq.internal.InternalUtil;
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.internal.TaskLogger;
@@ -210,6 +213,11 @@ public interface Task<T> extends Promise<T>, Cancellable
         dst.done(src.get());
       }
     });
+  }
+
+  default Task<Try<T>> withTry() {
+    return map("withTry(" + getName() + ")", t -> Success.of(t))
+             .recover("withTry", t -> Failure.of(t));
   }
 
   /**

@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import com.linkedin.parseq.Collections;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
@@ -32,7 +32,7 @@ public class FSeqFilterExample extends AbstractExample
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
     Task<Optional<String>> find =
-        Tasks.syncCall(urls)
+        Collections.formIterable(urls)
           .flatMapTaskSeq(url -> fetchUrl(httpClient, url)
                                   .withTimeout(100, TimeUnit.MILLISECONDS)
                                   .recover("default", t -> ""))
