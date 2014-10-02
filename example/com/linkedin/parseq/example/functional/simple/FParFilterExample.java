@@ -5,7 +5,6 @@ import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.linkedin.parseq.Collections;
@@ -31,9 +30,9 @@ public class FParFilterExample extends AbstractExample
     final MockService<String> httpClient = getService();
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
-    Task<Optional<String>> find =
+    Task<String> find =
         Collections.formIterable(urls)
-          .flatMapTaskPar(url -> fetchUrl(httpClient, url)
+          .par(url -> fetchUrl(httpClient, url)
                                   .withTimeout(100, TimeUnit.MILLISECONDS)
                                   .recover("default", t -> ""))
             .filter(s -> s.contains("google"))
@@ -43,7 +42,7 @@ public class FParFilterExample extends AbstractExample
 
     find.await();
 
-    System.out.println("found: " + find.get());
+    System.out.println("found: " + !find.isFailed());
 
     ExampleUtil.printTracingResults(find);
   }

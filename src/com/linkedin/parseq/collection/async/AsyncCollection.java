@@ -9,8 +9,8 @@ import java.util.function.Predicate;
 
 import com.linkedin.parseq.Task;
 import com.linkedin.parseq.collection.ParSeqCollection;
-import com.linkedin.parseq.stream.Publisher;
-import com.linkedin.parseq.stream.PushablePublisher;
+import com.linkedin.parseq.internal.stream.Publisher;
+import com.linkedin.parseq.internal.stream.PushablePublisher;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
@@ -60,6 +60,14 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     return takeWhile(predicate, this::createCollection);
   }
 
+  public AsyncCollection<T, R> drop(final int n) {
+    return drop(n, this::createCollection);
+  }
+
+  public AsyncCollection<T, R> dropWhile(final Predicate<R> predicate) {
+    return dropWhile(predicate, this::createCollection);
+  }
+
   /*
    * Foldings:
    */
@@ -68,24 +76,28 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     return fold(zero, op, foldable());
   }
 
-  public Task<Optional<R>> first() {
-    return first(foldable());
+  protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
+    return result.map("checkEmpty", ParSeqCollection::checkEmpty);
   }
 
-  public Task<Optional<R>> last() {
-    return last(foldable());
+  public Task<R> first() {
+    return checkEmptyAsync(first(foldable()));
+  }
+
+  public Task<R> last() {
+    return checkEmptyAsync(last(foldable()));
   }
 
   public Task<List<R>> all() {
     return all(foldable());
   }
 
-  public Task<Optional<R>> reduce(final BiFunction<R, R, R> op) {
-    return reduce(op, foldable());
+  public Task<R> reduce(final BiFunction<R, R, R> op) {
+    return checkEmptyAsync(reduce(op, foldable()));
   }
 
-  public Task<Optional<R>> find(final Predicate<R> predicate) {
-    return find(predicate, foldable());
+  public Task<R> find(final Predicate<R> predicate) {
+    return checkEmptyAsync(find(predicate, foldable()));
   }
 
   /*
@@ -107,18 +119,17 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     return fold;
   }
 
-  public <A> AsyncCollection<A, A> flatMapTask(final Function<R, Task<A>> f) {
+  public <A> AsyncCollection<A, A> mapTask(final Function<R, Task<A>> f) {
     PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
     Task<?> publisherTask = publisherTask(pushablePublisher);
-    return createAsyncCollection(pushablePublisher.map(f), a -> a, Optional.of(publisherTask));
+    return createAsyncCollection(pushablePublisher.map(f), Transducer.identity(), Optional.of(publisherTask));
   }
 
   public <A> AsyncCollection<A, A> flatMap(final Function<R, AsyncCollection<A, A>> f) {
     PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
     Task<?> publisherTask = publisherTask(pushablePublisher);
     Function<R, Publisher<Task<A>>> mapper = r -> f.apply(r)._input;
-    return createAsyncCollection(pushablePublisher.flatMap(mapper), a -> a, Optional.of(publisherTask));
+    return createAsyncCollection(pushablePublisher.flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
   }
-
 
 }

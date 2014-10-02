@@ -2,7 +2,7 @@ package com.linkedin.parseq.transducer;
 
 import java.util.function.BiFunction;
 
-import com.linkedin.parseq.stream.AckValue;
+import com.linkedin.parseq.internal.stream.AckValue;
 
 @FunctionalInterface
 public interface Reducer<Z, T> extends BiFunction<Z, AckValue<T>, Reducer.Step<Z>>{

@@ -1,9 +1,10 @@
 /* $Id$ */
 package com.linkedin.parseq.example.functional.simple;
 
+import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
+
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -13,8 +14,6 @@ import com.linkedin.parseq.Task;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
-
-import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
@@ -34,7 +33,7 @@ public class ParFilterExample extends AbstractExample
 
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
-    Task<Optional<String>> find =
+    Task<String> find =
         Collections.par(fetchSizes)
 //          .filter("google only", s -> s.contains("google"))
           .flatMap(z -> Collections.par(fetchList(httpClient, urls))

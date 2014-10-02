@@ -11,12 +11,24 @@ import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.Settable;
 import com.linkedin.parseq.promise.SettablePromise;
 
-public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
+/**
+ * TODO consider adding PureFunctionTask for cases where function is
+ * side effect free. In this case we don't need to schedule new task
+ * on engine to execute it.
+ *
+ *
+ * @author jodzga
+ *
+ * @param <S>
+ * @param <T>
+ */
+
+public class FunctionTask<S, T>  extends SystemHiddenTask<T> {
 
   private PromisePropagator<S, T> _propagator;
   private final Task<S> _task;
 
-  public FunctionalTask(final String name, Task<S> task, PromisePropagator<S, T> propagator) {
+  public FunctionTask(final String name, Task<S> task, PromisePropagator<S, T> propagator) {
     super(name);
     _propagator = propagator;
     _task = task;
@@ -24,23 +36,23 @@ public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
 
   @Override
   public <R> Task<R> apply(String desc, PromisePropagator<T,R> propagator) {
-    return new FunctionalTask<S, R>(desc, _task, _propagator.compose(propagator));
+    return new FunctionTask<S, R>(desc, _task, _propagator.compose(propagator));
   };
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {
-    return new FunctionalTask<S, R>(desc + "(" + getName() + ")", _task, _propagator.map(f));
+    return new FunctionTask<S, R>(desc + "(" + getName() + ")", _task, _propagator.map(f));
   }
 
   @Override
   public Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return new FunctionalTask<S, T>("andThen(" + getName() + ", "+ desc + ")", _task,
+    return new FunctionTask<S, T>("andThen(" + getName() + ", "+ desc + ")", _task,
         _propagator.andThen(consumer));
   }
 
   @Override
   public Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return new FunctionalTask<S, T>("recover(" + getName() +", " + desc + ")", _task, (src, dst) -> {
+    return new FunctionTask<S, T>("recover(" + getName() +", " + desc + ")", _task, (src, dst) -> {
       _propagator.accept(src, new Settable<T>() {
         @Override
         public void done(T value) throws PromiseResolvedException {
@@ -61,7 +73,7 @@ public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
   @Override
   protected Promise<? extends T> run(Context context) throws Throwable {
     final SettablePromise<T> result = Promises.settable();
-    context.after(_task).run(new SystemHiddenTask<T>(FunctionalTask.this.getName()) {
+    context.after(_task).run(new SystemHiddenTask<T>(FunctionTask.this.getName()) {
       @Override
       protected Promise<? extends T> run(Context context) throws Throwable {
         try {

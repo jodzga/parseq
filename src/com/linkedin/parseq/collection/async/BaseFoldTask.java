@@ -7,16 +7,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.linkedin.parseq.BaseTask;
 import com.linkedin.parseq.Context;
 import com.linkedin.parseq.FoldTask;
-import com.linkedin.parseq.FunctionalTask;
+import com.linkedin.parseq.FunctionTask;
 import com.linkedin.parseq.Priority;
 import com.linkedin.parseq.Task;
 import com.linkedin.parseq.Tasks;
+import com.linkedin.parseq.internal.stream.AckValue;
+import com.linkedin.parseq.internal.stream.Publisher;
+import com.linkedin.parseq.internal.stream.Subscriber;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.linkedin.parseq.stream.AckValue;
-import com.linkedin.parseq.stream.Publisher;
-import com.linkedin.parseq.stream.Subscriber;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 
@@ -63,7 +63,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask
       @Override
       public void onNext(final AckValue<Task<T>> task) {
         if (!_streamingComplete) {
-          scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
+          scheduleTask(new FunctionTask<T, T>("step(" + _name + ")", task.get(),
               (p, t) -> {
                 try
                 {

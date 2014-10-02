@@ -1,4 +1,4 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.internal.stream;
 
 public class IterablePublisher<T> implements Publisher<T> {
 

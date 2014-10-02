@@ -1,6 +1,6 @@
 package com.linkedin.parseq.collection.sync;
 
-import com.linkedin.parseq.stream.Publisher;
+import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer;
 

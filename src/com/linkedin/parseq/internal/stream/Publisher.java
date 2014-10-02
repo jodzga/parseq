@@ -1,4 +1,4 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.internal.stream;
 
 import java.util.ArrayDeque;
 import java.util.Queue;

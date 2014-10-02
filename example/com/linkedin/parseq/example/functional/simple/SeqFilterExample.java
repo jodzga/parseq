@@ -34,7 +34,7 @@ public class SeqFilterExample extends AbstractExample
 
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
-    Task<Optional<String>> find =
+    Task<String> find =
         Collections.seq(fetchSizes)
 //          .filter("google only", s -> s.contains("google"))
           .flatMap(z -> Collections.seq(fetchList(httpClient, urls))
@@ -45,7 +45,7 @@ public class SeqFilterExample extends AbstractExample
 
     find.await();
 
-    System.out.println("found: " + find.get());
+    System.out.println("found: " + !find.isFailed());
 
     ExampleUtil.printTracingResults(find);
   }

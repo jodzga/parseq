@@ -5,7 +5,7 @@ import java.util.Optional;
 import com.linkedin.parseq.collection.async.ParCollection;
 import com.linkedin.parseq.collection.async.SeqCollection;
 import com.linkedin.parseq.collection.sync.SyncCollection;
-import com.linkedin.parseq.stream.IterablePublisher;
+import com.linkedin.parseq.internal.stream.IterablePublisher;
 
 public class Collections {
 

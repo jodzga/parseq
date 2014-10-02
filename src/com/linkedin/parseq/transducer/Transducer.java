@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.stream.AckValue;
+import com.linkedin.parseq.internal.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.util.Integers;
 
@@ -121,8 +121,6 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
 
   /**
    * other operations proposal:
-   * drop
-   * dropWhile
    *
    * partition
    * split
@@ -131,4 +129,11 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
    * grouped(n)
    */
 
+  @SuppressWarnings("rawtypes")
+  static final Transducer IDENTITY = x -> x;
+
+  @SuppressWarnings("unchecked")
+  static <A> Transducer<A, A> identity() {
+    return IDENTITY;
+  }
 }

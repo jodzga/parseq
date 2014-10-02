@@ -3,7 +3,7 @@ package com.linkedin.parseq.collection.async;
 import java.util.Optional;
 
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.stream.Publisher;
+import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.transducer.Foldable;
 
 public abstract class AsyncFoldable<Z, T> implements Foldable<Z, T, Task<Z>>  {

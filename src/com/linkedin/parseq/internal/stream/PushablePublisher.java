@@ -1,4 +1,4 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.internal.stream;
 
 public class PushablePublisher<T> implements Publisher<T>{
   private Subscriber<T> _subscriber;

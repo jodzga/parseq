@@ -62,6 +62,8 @@ import com.linkedin.parseq.trace.Trace;
  */
 public interface Task<T> extends Promise<T>, Cancellable
 {
+  public final static String NO_DESCRIPTION = "?";
+
   /**
    * Returns the name of this task.
    *
@@ -135,7 +137,7 @@ public interface Task<T> extends Promise<T>, Cancellable
   Set<Related<Task<?>>> getRelationships();
 
   default <R> Task<R> apply(final String desc, final PromisePropagator<T, R> propagator) {
-    return new FunctionalTask<T, R>(desc, this, propagator);
+    return new FunctionTask<T, R>(desc, this, propagator);
   }
 
   /**
@@ -148,6 +150,10 @@ public interface Task<T> extends Promise<T>, Cancellable
    */
   default <R> Task<R> map(final String desc, final Function<T, R> f) {
     return apply(desc + "(" + getName() + ")", new PromiseTransformer<T, R>(f));
+  }
+
+  default <R> Task<R> map(final Function<T, R> f) {
+    return map(NO_DESCRIPTION, f);
   }
 
   /**
@@ -175,6 +181,10 @@ public interface Task<T> extends Promise<T>, Cancellable
     };
   }
 
+  default <R> Task<R> flatMap(final Function<T, Task<R>> f) {
+    return flatMap(NO_DESCRIPTION, f);
+  }
+
   /**
    * Applies the side-effecting function to the result of this Task, and returns
    * a new Task with the result of this Task to allow fluent chaining.
@@ -191,6 +201,9 @@ public interface Task<T> extends Promise<T>, Cancellable
         }));
   }
 
+  default Task<T> andThen(final Consumer<T> consumer) {
+    return andThen(NO_DESCRIPTION, consumer);
+  }
   /**
    * Creates a new Task that will handle any Throwable that this Task might throw
    * or Task cancellation.
@@ -215,9 +228,13 @@ public interface Task<T> extends Promise<T>, Cancellable
     });
   }
 
+  default Task<T> recover(final Function<Throwable, T> f) {
+    return recover(NO_DESCRIPTION, f);
+  }
+
   default Task<Try<T>> withTry() {
-    return map("withTry(" + getName() + ")", t -> Success.of(t))
-             .recover("withTry", t -> Failure.of(t));
+    return map("try", t -> Success.of(t))
+             .recover("failure", t -> Failure.of(t));
   }
 
   /**

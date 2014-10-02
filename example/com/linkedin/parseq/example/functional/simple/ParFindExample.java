@@ -34,19 +34,19 @@ public class ParFindExample extends AbstractExample
 
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
-    Task<Optional<Optional<String>>> find =
+    Task<String> find =
         Collections.par(fetchSizes)
           .filter(s -> s.contains("twitter"))
-          .flatMapTask(z -> {
+          .mapTask(z -> {
             return  Collections.par(fetchList(httpClient, urls))
                 .find(s -> s.contains("linkedin"));
-          }).find(o -> o.isPresent());
+          }).first();
 
     engine.run(find);
 
     find.await();
 
-    System.out.println("found: " + find.get());
+    System.out.println("found: " + !find.isFailed());
 
     ExampleUtil.printTracingResults(find);
   }

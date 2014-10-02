@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import com.linkedin.parseq.Context;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.stream.Publisher;
+import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.transducer.Reducer;
 
 /**

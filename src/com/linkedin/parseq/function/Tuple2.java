@@ -2,6 +2,7 @@ package com.linkedin.parseq.function;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.function.BiFunction;
 
 public class Tuple2<T1, T2> implements Tuple {
@@ -53,6 +54,30 @@ public class Tuple2<T1, T2> implements Tuple {
   @Override
   public int arity() {
     return 2;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+      if(other instanceof Tuple2) {
+          Tuple2<?, ?> that = (Tuple2<?, ?>) other;
+          return Objects.equals(this._1, that._1)
+                  && Objects.equals(this._2, that._2);
+      } else {
+          return false;
+      }
+  }
+
+  @Override
+  public int hashCode() {
+      return Objects.hash(_1, _2);
+  }
+
+  @Override
+  public String toString() {
+      return "("
+              + Objects.toString(_1) + ", "
+              + Objects.toString(_2)
+              + ")";
   }
 
 }

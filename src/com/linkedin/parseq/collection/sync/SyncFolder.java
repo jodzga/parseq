@@ -1,8 +1,8 @@
 package com.linkedin.parseq.collection.sync;
 
-import com.linkedin.parseq.stream.AckValue;
-import com.linkedin.parseq.stream.Publisher;
-import com.linkedin.parseq.stream.Subscriber;
+import com.linkedin.parseq.internal.stream.AckValue;
+import com.linkedin.parseq.internal.stream.Publisher;
+import com.linkedin.parseq.internal.stream.Subscriber;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 

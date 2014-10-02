@@ -2,6 +2,7 @@ package com.linkedin.parseq.collection;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -40,6 +41,19 @@ public abstract class ParSeqCollection<T, R> {
     return (z, ackA) -> { ackA.ack(); return reducer.apply(z, ackA); };
   }
 
+  protected static final <R> R checkEmpty(Optional<R> result) {
+    if (result.isPresent()) {
+      return result.get();
+    } else {
+      throw new NoSuchElementException();
+    }
+  }
+
+
+  /*
+   * Collection transformations:
+   */
+
   protected <A, V extends ParSeqCollection<T, A>> V map(final Function<R, A> f,
       Function<Transducer<T, A>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.map(ackR -> ackR.map(f)));
@@ -67,6 +81,20 @@ public abstract class ParSeqCollection<T, R> {
       Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.takeWhile(predicate));
   }
+
+  protected <V extends ParSeqCollection<T, R>> V drop(final int n,
+      Function<Transducer<T, R>, V> collectionBuilder) {
+    return collectionBuilder.apply(_transducer.drop(n));
+  }
+
+  protected <V extends ParSeqCollection<T, R>> V dropWhile(final Predicate<R> predicate,
+      Function<Transducer<T, R>, V> collectionBuilder) {
+    return collectionBuilder.apply(_transducer.dropWhile(predicate));
+  }
+
+  /*
+   * Foldings:
+   */
 
   protected <Z, V> V fold(final Z zero, final BiFunction<Z, R, Z> op, final Foldable<Z, T, V> foldable) {
     return foldable.fold(zero, acking(transduce((z, e) -> Step.cont(op.apply(z, e.get())))));

@@ -12,8 +12,9 @@ import com.linkedin.parseq.collection.ParSeqCollection;
 import com.linkedin.parseq.collection.async.AsyncCollection;
 import com.linkedin.parseq.collection.async.ParCollection;
 import com.linkedin.parseq.collection.async.SeqCollection;
-import com.linkedin.parseq.stream.Publisher;
-import com.linkedin.parseq.stream.Subscriber;
+import com.linkedin.parseq.internal.stream.Publisher;
+import com.linkedin.parseq.internal.stream.PushablePublisher;
+import com.linkedin.parseq.internal.stream.Subscriber;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
@@ -61,6 +62,14 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
     return takeWhile(predicate, this::createCollection);
   }
 
+  public SyncCollection<T, R> drop(final int n) {
+    return drop(n, this::createCollection);
+  }
+
+  public SyncCollection<T, R> dropWhile(final Predicate<R> predicate) {
+    return dropWhile(predicate, this::createCollection);
+  }
+
   /*
    * Foldings:
    */
@@ -73,24 +82,24 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
     return fold(zero, op, foldable());
   }
 
-  public Optional<R> first() {
-    return first(foldable());
+  public R first() {
+    return checkEmpty(first(foldable()));
   }
 
-  public Optional<R> last() {
-    return last(foldable());
+  public R last() {
+    return checkEmpty(last(foldable()));
   }
 
   public List<R> all() {
     return all(foldable());
   }
 
-  public Optional<R> reduce(final BiFunction<R, R, R> op) {
-    return reduce(op, foldable());
+  public R reduce(final BiFunction<R, R, R> op) {
+    return checkEmpty(reduce(op, foldable()));
   }
 
-  public Optional<R> find(final Predicate<R> predicate) {
-    return find(predicate, foldable());
+  public R find(final Predicate<R> predicate) {
+    return checkEmpty(find(predicate, foldable()));
   }
 
   /*
@@ -116,14 +125,20 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
     };
   }
 
-  public <A> ParCollection<A, A> flatMapTaskPar(final Function<R, Task<A>> f) {
+  public <A> ParCollection<A, A> par(final Function<R, Task<A>> f) {
     Publisher<Task<A>> tasks = map(f).publisher();
     return new ParCollection<A, A>(x -> x, tasks, Optional.empty());
   }
 
-  public <A> SeqCollection<A, A> flatMapTaskSeq(final Function<R, Task<A>> f) {
+  public <A> SeqCollection<A, A> seq(final Function<R, Task<A>> f) {
     Publisher<Task<A>> tasks = map(f).publisher();
     return new SeqCollection<A, A>(x -> x, tasks, Optional.empty());
   }
+
+  public <A> SyncCollection<A, A> flatMap(final Function<R, SyncCollection<A, A>> f) {
+    return new SyncCollection<A, A>(Transducer.identity(),
+        publisher().flatMap(x -> f.apply(x)._input));
+  }
+
 
 }
