@@ -16,7 +16,7 @@
 
 package com.linkedin.parseq.internal;
 
-import com.linkedin.parseq.Priority;
+import com.linkedin.parseq.task.Priority;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;

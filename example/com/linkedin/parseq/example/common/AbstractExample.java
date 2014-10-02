@@ -16,8 +16,8 @@
 
 package com.linkedin.parseq.example.common;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.EngineBuilder;
+import com.linkedin.parseq.engine.Engine;
+import com.linkedin.parseq.engine.EngineBuilder;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

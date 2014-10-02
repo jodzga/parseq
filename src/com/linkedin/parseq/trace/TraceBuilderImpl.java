@@ -16,8 +16,8 @@
 
 package com.linkedin.parseq.trace;
 
-import com.linkedin.parseq.EarlyFinishException;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.task.EarlyFinishException;
+import com.linkedin.parseq.task.Task;
 
 import java.util.Set;
 

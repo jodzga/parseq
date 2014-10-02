@@ -16,25 +16,25 @@
 
 package com.linkedin.parseq.example.composite;
 
-import com.linkedin.parseq.BaseTask;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.MockService;
 import com.linkedin.parseq.example.common.SimpleMockRequest;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.linkedin.parseq.Tasks.action;
-import static com.linkedin.parseq.Tasks.seq;
 import static com.linkedin.parseq.example.common.ExampleUtil.callService;
 import static com.linkedin.parseq.example.common.ExampleUtil.printTracingResults;
+import static com.linkedin.parseq.task.Tasks.action;
+import static com.linkedin.parseq.task.Tasks.seq;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)

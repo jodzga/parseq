@@ -16,14 +16,15 @@
 
 package com.linkedin.parseq.trace;
 
-import com.linkedin.parseq.BaseEngineTest;
-import com.linkedin.parseq.BaseTask;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.Task;
 import com.linkedin.parseq.TestUtil;
+import com.linkedin.parseq.engine.BaseEngineTest;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
+
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -34,9 +35,9 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.linkedin.parseq.Tasks.par;
-import static com.linkedin.parseq.Tasks.seq;
 import static com.linkedin.parseq.TestUtil.value;
+import static com.linkedin.parseq.task.Tasks.par;
+import static com.linkedin.parseq.task.Tasks.seq;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertNull;

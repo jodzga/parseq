@@ -16,7 +16,7 @@
 
 package com.linkedin.parseq.internal;
 
-import com.linkedin.parseq.Cancellable;
+import com.linkedin.parseq.task.Cancellable;
 
 import java.util.concurrent.ScheduledFuture;
 

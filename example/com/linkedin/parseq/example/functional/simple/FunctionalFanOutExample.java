@@ -1,7 +1,7 @@
 /* $Id$ */
 package com.linkedin.parseq.example.functional.simple;
 
-import com.linkedin.parseq.Engine;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 
 /**

@@ -16,10 +16,10 @@
 
 package com.linkedin.parseq.example.common;
 
-import com.linkedin.parseq.BaseTask;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.trace.Trace;
 import com.linkedin.parseq.trace.codec.json.JsonTraceCodec;
 

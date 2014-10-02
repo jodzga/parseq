@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.Task;
 import com.linkedin.parseq.collection.ParSeqCollection;
 import com.linkedin.parseq.collection.async.AsyncCollection;
 import com.linkedin.parseq.collection.async.ParCollection;
@@ -15,6 +14,7 @@ import com.linkedin.parseq.collection.async.SeqCollection;
 import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.internal.stream.PushablePublisher;
 import com.linkedin.parseq.internal.stream.Subscriber;
+import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;

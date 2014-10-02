@@ -16,20 +16,20 @@
 
 package com.linkedin.parseq.example.composite;
 
-import com.linkedin.parseq.BaseTask;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
 
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.Callable;
 
-import static com.linkedin.parseq.Tasks.callable;
+import static com.linkedin.parseq.task.Tasks.callable;
 
 /**
  * The merge sort example demonstrates how branching and recursive plan

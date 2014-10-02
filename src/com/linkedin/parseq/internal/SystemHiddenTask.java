@@ -1,6 +1,6 @@
 package com.linkedin.parseq.internal;
 
-import com.linkedin.parseq.BaseTask;
+import com.linkedin.parseq.task.BaseTask;
 import com.linkedin.parseq.trace.ShallowTrace;
 import com.linkedin.parseq.trace.ShallowTraceBuilder;
 

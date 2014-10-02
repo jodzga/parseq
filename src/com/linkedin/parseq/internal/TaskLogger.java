@@ -16,9 +16,10 @@
 
 package com.linkedin.parseq.internal;
 
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.trace.ResultType;
 import com.linkedin.parseq.trace.ShallowTrace;
+
 import org.slf4j.Logger;
 
 import java.util.concurrent.atomic.AtomicLong;

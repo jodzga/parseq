@@ -4,19 +4,18 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.linkedin.parseq.BaseTask;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.FoldTask;
-import com.linkedin.parseq.FunctionTask;
-import com.linkedin.parseq.Priority;
-import com.linkedin.parseq.Task;
-import com.linkedin.parseq.Tasks;
 import com.linkedin.parseq.internal.stream.AckValue;
 import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.internal.stream.Subscriber;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.FunctionTask;
+import com.linkedin.parseq.task.Priority;
+import com.linkedin.parseq.task.Task;
+import com.linkedin.parseq.task.Tasks;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 

@@ -6,12 +6,12 @@ import static com.linkedin.parseq.example.common.ExampleUtil.printTracingResults
 
 import java.util.concurrent.Callable;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
-import com.linkedin.parseq.Tasks;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.MockService;
 import com.linkedin.parseq.example.common.SimpleMockRequest;
+import com.linkedin.parseq.task.Task;
+import com.linkedin.parseq.task.Tasks;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)

@@ -5,11 +5,11 @@ import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 import java.util.concurrent.TimeUnit;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
+import com.linkedin.parseq.task.Task;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)

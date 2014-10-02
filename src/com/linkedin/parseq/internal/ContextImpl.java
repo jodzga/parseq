@@ -16,13 +16,13 @@
 
 package com.linkedin.parseq.internal;
 
-import com.linkedin.parseq.After;
-import com.linkedin.parseq.Cancellable;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.EarlyFinishException;
-import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromiseListener;
+import com.linkedin.parseq.task.After;
+import com.linkedin.parseq.task.Cancellable;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.EarlyFinishException;
+import com.linkedin.parseq.task.Task;
 
 import java.util.ArrayList;
 import java.util.Arrays;

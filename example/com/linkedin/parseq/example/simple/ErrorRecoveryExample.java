@@ -1,17 +1,17 @@
 /* $Id$ */
 package com.linkedin.parseq.example.simple;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
+import com.linkedin.parseq.task.Task;
 
 import java.util.concurrent.Callable;
 
-import static com.linkedin.parseq.Tasks.seq;
-import static com.linkedin.parseq.Tasks.callable;
 import static com.linkedin.parseq.example.common.ExampleUtil.fetch404Url;
+import static com.linkedin.parseq.task.Tasks.callable;
+import static com.linkedin.parseq.task.Tasks.seq;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)

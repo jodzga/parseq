@@ -16,9 +16,6 @@
 
 package com.linkedin.parseq.example.composite.classifier;
 
-import com.linkedin.parseq.BaseTask;
-import com.linkedin.parseq.Context;
-import com.linkedin.parseq.Task;
 import com.linkedin.parseq.example.composite.classifier.client.Client;
 import com.linkedin.parseq.example.composite.classifier.client.Request;
 import com.linkedin.parseq.example.composite.classifier.client.impl.GetNetworkRequest;
@@ -26,6 +23,9 @@ import com.linkedin.parseq.example.composite.classifier.client.impl.TruthMapRequ
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,9 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static com.linkedin.parseq.Tasks.action;
-import static com.linkedin.parseq.Tasks.par;
-import static com.linkedin.parseq.Tasks.seq;
+import static com.linkedin.parseq.task.Tasks.action;
+import static com.linkedin.parseq.task.Tasks.par;
+import static com.linkedin.parseq.task.Tasks.seq;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)

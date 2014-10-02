@@ -16,12 +16,12 @@
 
 package com.linkedin.parseq.example.composite.classifier;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.EngineBuilder;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
+import com.linkedin.parseq.engine.EngineBuilder;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.composite.classifier.client.Client;
 import com.linkedin.parseq.example.composite.classifier.client.impl.ClientImpl;
+import com.linkedin.parseq.task.Task;
 
 import java.util.HashSet;
 import java.util.Map;

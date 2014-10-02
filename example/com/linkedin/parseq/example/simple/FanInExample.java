@@ -1,14 +1,14 @@
 /* $Id$ */
 package com.linkedin.parseq.example.simple;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.MockService;
+import com.linkedin.parseq.task.Task;
 
-import static com.linkedin.parseq.Tasks.*;
 import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 import static com.linkedin.parseq.example.common.ExampleUtil.printTracingResults;
+import static com.linkedin.parseq.task.Tasks.*;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)

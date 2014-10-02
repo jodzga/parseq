@@ -18,11 +18,16 @@ package com.linkedin.parseq;
 
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
+import com.linkedin.parseq.task.ThrowingRunnable;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.spi.LoggerRepository;
 
-import static com.linkedin.parseq.Tasks.action;
+import static com.linkedin.parseq.task.Tasks.action;
 import static org.testng.AssertJUnit.assertTrue;
 import static org.testng.AssertJUnit.fail;
 

@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.linkedin.parseq.Collections;
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
+import com.linkedin.parseq.task.Collections;
+import com.linkedin.parseq.task.Task;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)

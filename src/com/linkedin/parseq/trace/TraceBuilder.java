@@ -16,7 +16,7 @@
 
 package com.linkedin.parseq.trace;
 
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.task.Task;
 
 /**
  * Generate trace data.
