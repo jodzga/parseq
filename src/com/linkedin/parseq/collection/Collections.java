@@ -30,7 +30,7 @@ public class Collections {
     return new ParCollection<T, T>(x -> x, new IterablePublisher<>(tasks), Optional.empty());
   }
 
-  public static <T> SyncCollection<T, T> formIterable(final Iterable<T> input)
+  public static <T> SyncCollection<T, T> fromIterable(final Iterable<T> input)
   {
     return new SyncCollection<T, T>(x -> x, new IterablePublisher<>(input));
   }

@@ -62,7 +62,7 @@ public class TwoStageFanoutExample extends AbstractExample
   }
 
   private Task<StringBuilder> stage(final List<String> input, final StringBuilder resultBuilder) {
-    return Collections.formIterable(input)
+    return Collections.fromIterable(input)
         .par(url -> (Task<Tuple2<String, String>>)fetchUrl(getService(), url)
                       .map(s -> tuple(url, s)))
         .fold(resultBuilder, (z, r) ->
