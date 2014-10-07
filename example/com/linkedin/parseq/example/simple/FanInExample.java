@@ -12,6 +12,7 @@ import static com.linkedin.parseq.task.Tasks.*;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public class FanInExample extends AbstractExample
 {
@@ -29,19 +30,12 @@ public class FanInExample extends AbstractExample
     final Task<String> fetchYahoo = fetchUrl(httpClient, "http://www.yahoo.com");
     final Task<String> fetchGoogle = fetchUrl(httpClient, "http://www.google.com");
 
-    final Task<?> printResults = action("printResults", new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        System.out.println("Bing   => " + fetchBing.get());
-        System.out.println("Yahoo  => " + fetchYahoo.get());
-        System.out.println("Google => " + fetchGoogle.get());
-      }
-    });
-
-    final Task<?> parFetch = par(fetchBing, fetchGoogle, fetchYahoo);
-    final Task<?> fanIn = seq(parFetch, printResults);
+    final Task<?> fanIn = par(fetchBing, fetchGoogle, fetchYahoo)
+                            .andThen(tuple -> {
+                              System.out.println("Bing   => " + tuple._1());
+                              System.out.println("Yahoo  => " + tuple._2());
+                              System.out.println("Google => " + tuple._3());
+                            });
     engine.run(fanIn);
 
     fanIn.await();

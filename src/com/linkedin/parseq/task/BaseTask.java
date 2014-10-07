@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import com.linkedin.parseq.internal.TaskLogger;
 import com.linkedin.parseq.promise.DelegatingPromise;
@@ -461,6 +462,15 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
     {
       _after.run(task);
       _relationshipBuilder.addRelationship(Relationship.POTENTIAL_PARENT_OF, task);
+    }
+
+    @Override
+    public void run(Supplier<Task<?>> taskSupplier) {
+      _after.run(() -> {
+        Task<?> task = taskSupplier.get();
+        _relationshipBuilder.addRelationship(Relationship.POTENTIAL_PARENT_OF, task);
+        return task;
+      });
     }
   }
 

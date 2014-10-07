@@ -1,7 +1,9 @@
 /* $Id$ */
-package com.linkedin.parseq.example.functional.simple;
+package com.linkedin.parseq.example.simple;
 
-import static com.linkedin.parseq.example.common.ExampleUtil.fetch404Url;
+import static com.linkedin.parseq.example.common.ExampleUtil.*;
+
+import java.util.concurrent.TimeUnit;
 
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
@@ -12,11 +14,11 @@ import com.linkedin.parseq.task.Task;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public class FuncionalErrorPropagationExample extends AbstractExample
+public class DegradedExperienceExample extends AbstractExample
 {
   public static void main(String[] args) throws Exception
   {
-    new FuncionalErrorPropagationExample().runExample();
+    new DegradedExperienceExample().runExample();
   }
 
   @Override
@@ -24,15 +26,18 @@ public class FuncionalErrorPropagationExample extends AbstractExample
   {
     final MockService<String> httpClient = getService();
 
+
     final Task<Integer> fetchAndLength =
-        fetch404Url(httpClient, "http://www.google.com")
-          .map("length", x -> x.length());
+        fetchUrl(httpClient, "http://www.google.com", 100)
+          .withTimeout(200, TimeUnit.MILLISECONDS)
+          .recover("default", t -> "")
+          .map("length", s -> s.length());
 
     engine.run(fetchAndLength);
 
     fetchAndLength.await();
 
-    System.out.println("Error while fetching url: " + fetchAndLength.getError());
+    System.out.println("Response length: " + fetchAndLength.get());
 
     ExampleUtil.printTracingResults(fetchAndLength);
   }

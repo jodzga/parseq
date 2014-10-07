@@ -23,12 +23,12 @@ import com.linkedin.parseq.promise.SettablePromise;
  * @param <T>
  */
 
-public class FunctionTask<S, T>  extends SystemHiddenTask<T> {
+public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
 
   private PromisePropagator<S, T> _propagator;
   private final Task<S> _task;
 
-  public FunctionTask(final String name, Task<S> task, PromisePropagator<S, T> propagator) {
+  public FunctionalTask(final String name, Task<S> task, PromisePropagator<S, T> propagator) {
     super(name);
     _propagator = propagator;
     _task = task;
@@ -36,23 +36,23 @@ public class FunctionTask<S, T>  extends SystemHiddenTask<T> {
 
   @Override
   public <R> Task<R> apply(String desc, PromisePropagator<T,R> propagator) {
-    return new FunctionTask<S, R>(desc, _task, _propagator.compose(propagator));
+    return new FunctionalTask<S, R>(desc, _task, _propagator.compose(propagator));
   };
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {
-    return new FunctionTask<S, R>(desc + "(" + getName() + ")", _task, _propagator.map(f));
+    return new FunctionalTask<S, R>(desc + "(" + getName() + ")", _task, _propagator.map(f));
   }
 
   @Override
   public Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return new FunctionTask<S, T>("andThen(" + getName() + ", "+ desc + ")", _task,
+    return new FunctionalTask<S, T>("andThen(" + getName() + ", "+ desc + ")", _task,
         _propagator.andThen(consumer));
   }
 
   @Override
   public Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return new FunctionTask<S, T>("recover(" + getName() +", " + desc + ")", _task, (src, dst) -> {
+    return new FunctionalTask<S, T>("recover(" + getName() +", " + desc + ")", _task, (src, dst) -> {
       _propagator.accept(src, new Settable<T>() {
         @Override
         public void done(T value) throws PromiseResolvedException {
@@ -73,7 +73,7 @@ public class FunctionTask<S, T>  extends SystemHiddenTask<T> {
   @Override
   protected Promise<? extends T> run(Context context) throws Throwable {
     final SettablePromise<T> result = Promises.settable();
-    context.after(_task).run(new SystemHiddenTask<T>(FunctionTask.this.getName()) {
+    context.after(_task).run(new SystemHiddenTask<T>(FunctionalTask.this.getName()) {
       @Override
       protected Promise<? extends T> run(Context context) throws Throwable {
         try {

@@ -13,6 +13,7 @@ import com.linkedin.parseq.task.Task;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public class TimeoutWithErrorExample extends AbstractExample
 {

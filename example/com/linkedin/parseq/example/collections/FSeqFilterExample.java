@@ -1,5 +1,5 @@
 /* $Id$ */
-package com.linkedin.parseq.example.functional.simple;
+package com.linkedin.parseq.example.collections;
 
 import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
@@ -7,11 +7,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.linkedin.parseq.collection.Collections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
-import com.linkedin.parseq.task.Collections;
 import com.linkedin.parseq.task.Task;
 
 /**

@@ -16,13 +16,11 @@
 
 package com.linkedin.parseq.task;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -30,11 +28,9 @@ import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.function.Failure;
 import com.linkedin.parseq.function.Success;
 import com.linkedin.parseq.function.Try;
-import com.linkedin.parseq.internal.InternalUtil;
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.internal.TaskLogger;
 import com.linkedin.parseq.promise.Promise;
-import com.linkedin.parseq.promise.PromiseListener;
 import com.linkedin.parseq.promise.PromisePropagator;
 import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
@@ -63,7 +59,7 @@ import com.linkedin.parseq.trace.Trace;
  */
 public interface Task<T> extends Promise<T>, Cancellable
 {
-  public final static String NO_DESCRIPTION = "?";
+  public final static String NO_DESCRIPTION = "Unnamed";
 
   /**
    * Returns the name of this task.
@@ -138,7 +134,7 @@ public interface Task<T> extends Promise<T>, Cancellable
   Set<Related<Task<?>>> getRelationships();
 
   default <R> Task<R> apply(final String desc, final PromisePropagator<T, R> propagator) {
-    return new FunctionTask<T, R>(desc, this, propagator);
+    return new FunctionalTask<T, R>(desc, this, propagator);
   }
 
   /**
@@ -153,8 +149,10 @@ public interface Task<T> extends Promise<T>, Cancellable
     return apply(desc + "(" + getName() + ")", new PromiseTransformer<T, R>(f));
   }
 
+  //TODO move description to be a last parameter and add enum or fla to signify if it is supposed to be hidden
+
   default <R> Task<R> map(final Function<T, R> f) {
-    return map(NO_DESCRIPTION, f);
+    return map("map", f);
   }
 
   /**
@@ -167,23 +165,49 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which will apply given function on result of successful completion of this task
    */
   default <R> Task<R> flatMap(final String desc, final Function<T, Task<R>> f) {
+    return mapOrFlatMap(desc, t -> TaskOrValue.task(f.apply(t)));
+  }
+
+  default <R> Task<R> flatMap(final Function<T, Task<R>> f) {
+    return flatMap("flatMap", f);
+  }
+
+  default <R> Task<R> mapOrFlatMap(final String desc, final Function<T, TaskOrValue<R>> f) {
     final Task<T> that = this;
-    return new SystemHiddenTask<R>(desc + "(" + getName() + ")") {
+    final String name = desc + "(" + getName() + ")";
+    return new SystemHiddenTask<R>(name) {
       @Override
-      protected Promise<R> run(final Context context) throws Throwable {
+      protected Promise<R> run(Context context) throws Throwable {
         final SettablePromise<R> result = Promises.settable();
-        context.run(that.andThen(desc, t -> {
-          Task<R> taskR = f.apply(t);
-          Promises.propagateResult(taskR, result);
-          context.run(taskR);
-        }));
+        context.after(that).run(new SystemHiddenTask<R>(name) {
+          @Override
+          protected Promise<R> run(Context context) throws Throwable {
+            try {
+              TaskOrValue<R> taskOrValueR = f.apply(that.get());
+              if (taskOrValueR.isTask()) {
+                Task<R> taskR = taskOrValueR.getTask();
+                Promises.propagateResult(taskR, result);
+                context.run(taskR);
+                return taskR;
+              } else {
+                Promise<R> valueR = Promises.value(taskOrValueR.getValue());
+                Promises.propagateResult(valueR, result);
+                return valueR;
+              }
+            } catch (Throwable t) {
+              result.fail(t);
+              return Promises.error(t);
+            }
+          }
+        });
+        context.run(that);
         return result;
       }
     };
   }
 
-  default <R> Task<R> flatMap(final Function<T, Task<R>> f) {
-    return flatMap(NO_DESCRIPTION, f);
+  default <R> Task<R> mapOrFlatMap(final Function<T, TaskOrValue<R>> f) {
+    return mapOrFlatMap("mapOrFlatMap", f);
   }
 
   /**
@@ -205,6 +229,26 @@ public interface Task<T> extends Promise<T>, Cancellable
   default Task<T> andThen(final Consumer<T> consumer) {
     return andThen(NO_DESCRIPTION, consumer);
   }
+
+  default <R> Task<R> andThen(final String desc, final Task<R> task) {
+    final Task<T> that = this;
+    final String name = "andThen(" + getName() + ", "+ desc + ")";
+    return new SystemHiddenTask<R>(name) {
+      @Override
+      protected Promise<R> run(Context context) throws Throwable {
+        final SettablePromise<R> result = Promises.settable();
+        context.after(that).run(task);
+        Promises.propagateResult(task, result);
+        context.run(that);
+        return result;
+      }
+    };
+  }
+
+  default <R> Task<R> andThen(final Task<R> task) {
+    return andThen(NO_DESCRIPTION, task);
+  }
+
   /**
    * Creates a new Task that will handle any Throwable that this Task might throw
    * or Task cancellation.
@@ -251,23 +295,30 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task or cancellation
    */
   default Task<T> recoverWith(final String desc, final Function<Throwable, Task<T>> f) {
+    final Task<T> that = this;
+    final String name = "recoverWith(" + getName() +", " + desc + ")";
     return new SystemHiddenTask<T>("recoverWith(" + getName() +", " + desc + ")") {
       @Override
-      protected Promise<T> run(final Context context) throws Throwable {
+      protected Promise<T> run(Context context) throws Throwable {
         final SettablePromise<T> result = Promises.settable();
-        context.run(apply("recoverWith(" + getName() +", " + desc + ")", (src, dst) -> {
-          if (src.isFailed()) {
-            try {
-              Task<T> recovery = f.apply(src.getError());
-              Promises.propagateResult(recovery, result);
-              context.run(recovery);
-            } catch (Throwable t) {
-              dst.fail(t);
+        context.after(that).run(new SystemHiddenTask<T>(name) {
+          @Override
+          protected Promise<T> run(Context context) throws Throwable {
+            if (that.isFailed()) {
+              try {
+                Task<T> recovery = f.apply(that.getError());
+                Promises.propagateResult(recovery, result);
+                context.run(recovery);
+              } catch (Throwable t) {
+                result.fail(t);
+              }
+            } else {
+              result.done(that.get());
             }
-          } else {
-            dst.done(src.get());
+            return result;
           }
-        }));
+        });
+        context.run(that);
         return result;
       }
     };
@@ -288,6 +339,8 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task or cancellation
    */
   default Task<T> fallBackTo(final String desc, final Function<Throwable, Task<T>> f) {
+    //TODO
+
     return new SystemHiddenTask<T>("fallBackTo(" + getName() +", " + desc + ")") {
       @Override
       protected Promise<T> run(final Context context) throws Throwable {
@@ -363,44 +416,6 @@ public interface Task<T> extends Promise<T>, Cancellable
   {
     wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit));
     return this;
-  }
-
-  /**
-   * TODO use after
-   *
-   *
-   * Combines this Task with passed in Task and calls function on a result of
-   * the two. If either of tasks fail, then resulting task will also fail with
-   * propagated Throwable. If both tasks fail, then resulting task fails with
-   * MultiException containing Throwables from both tasks.
-   * @param t Task this Task needs to join with
-   * @param f function to be called on successful completion of both tasks
-   * @return a new Task which will apply given function on result of successful completion of both tasks
-   */
-  default <R, U> Task<U> join(final Task<R> t, BiFunction<T, R, U> f) {
-    final Task<T> that = this;
-    return new BaseTask<U>("join(" + that.getName() + ", " + t.getName() + ")") {
-      @Override
-      protected Promise<? extends U> run(Context context) throws Throwable {
-        final SettablePromise<U> result = Promises.settable();
-        final PromiseListener<?> listener = x -> {
-          if (!that.isFailed() && !t.isFailed()) {
-            result.done(f.apply(that.get(), t.get()));
-          }
-          else if (that.isFailed() && t.isFailed()) {
-            result.fail(new MultiException("Multiple errors in 'join' task.", Arrays.asList(that.getError(), t.getError())));
-          } else if (that.isFailed()) {
-            result.fail(that.getError());
-          } else {
-            result.fail(t.getError());
-          }
-        };
-        InternalUtil.after(listener, new Task<?>[]{ that, t});
-        context.run(that);
-        context.run(t);
-        return result;
-      }
-    };
   }
 
   public interface ContextRunWrapper<T> {

@@ -1,15 +1,14 @@
 package com.linkedin.parseq.internal.stream;
 
-import java.util.Objects;
 import java.util.function.Function;
+
+import com.linkedin.parseq.util.Objects;
 
 public class AckValue<T> {
 
   private final T _value;
   private final Ack _ack;
 
-  //TODO fix: combine runnables only when both are not NO_OP
-  // better yet: extract ack combinators and optimize there
   public AckValue(T value, Ack ack) {
     Objects.requireNonNull(ack);
     _value = value;

@@ -1,25 +1,21 @@
 /* $Id$ */
 package com.linkedin.parseq.example.simple;
 
+import static com.linkedin.parseq.example.common.ExampleUtil.callService;
+import static com.linkedin.parseq.example.common.ExampleUtil.printTracingResults;
+
+import java.util.concurrent.Callable;
+
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.MockService;
 import com.linkedin.parseq.example.common.SimpleMockRequest;
-import com.linkedin.parseq.promise.Promise;
-import com.linkedin.parseq.promise.Promises;
-import com.linkedin.parseq.task.BaseTask;
-import com.linkedin.parseq.task.Context;
 import com.linkedin.parseq.task.Task;
-
-import java.util.concurrent.Callable;
-
-import static com.linkedin.parseq.example.common.ExampleUtil.callService;
-import static com.linkedin.parseq.example.common.ExampleUtil.printTracingResults;
-import static com.linkedin.parseq.task.Tasks.callable;
-import static com.linkedin.parseq.task.Tasks.seq;
+import com.linkedin.parseq.task.Tasks;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public class BranchExecutedExample extends AbstractExample
 {
@@ -32,26 +28,17 @@ public class BranchExecutedExample extends AbstractExample
   protected void doRunExample(final Engine engine) throws Exception
   {
     final MockService<Integer> serviceX = getService();
-
     final Task<Integer> fetchX = fetchX(serviceX, 24);
-    final Task<Integer> enlargeX = new BaseTask<Integer>("make x >= 42")
-    {
-      @Override
-      protected Promise<? extends Integer> run(final Context context) throws Exception
-      {
-        final int x = fetchX.get();
-        if (x < 42)
-        {
-          final int toAdd = 42 - x;
-          final Task<Integer> addTo42 = add(x, toAdd);
-          context.run(addTo42);
-          return addTo42;
-        }
-        return Promises.value(x);
-      }
-    };
 
-    final Task<Integer> bigX = seq(fetchX, enlargeX);
+    final Task<Integer> bigX = fetchX.flatMap("make x >= 42", x -> {
+      if (x < 42) {
+        final int toAdd = 42 - x;
+        return add(x, toAdd);
+      } else {
+        return fetchX;
+      }
+    });
+
     engine.run(bigX);
 
     bigX.await();
@@ -63,14 +50,7 @@ public class BranchExecutedExample extends AbstractExample
 
   private static Task<Integer> add(final int x, final int toAdd)
   {
-    return callable("add " + toAdd, new Callable<Integer>()
-    {
-      @Override
-      public Integer call()
-      {
-        return x + toAdd;
-      }
-    });
+    return Tasks.callable("add " + toAdd, (Callable<Integer>)() -> x + toAdd);
   }
 
   private Task<Integer> fetchX(final MockService<Integer> serviceX,

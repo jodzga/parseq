@@ -1,5 +1,6 @@
 package com.linkedin.parseq.collection.async;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -15,6 +16,14 @@ import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
 
+/**
+ * TODO EARLY_FINISH
+ *
+ * @author jodzga
+ *
+ * @param <T>
+ * @param <R>
+ */
 public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
 
   protected final Publisher<Task<T>> _input;
@@ -26,7 +35,7 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     _predecessor = predecessor;
   }
 
-  protected abstract <Z> Foldable<Z, T, Task<Z>> foldable();
+  protected abstract <Z> Foldable<Z, T, FoldTask<Z>> foldable();
 
   abstract <A, B> AsyncCollection<A, B> createAsyncCollection(final Publisher<Task<A>> input,
       Transducer<A, B> transducer,
@@ -72,7 +81,7 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
    * Foldings:
    */
 
-  public <Z> Task<Z> fold(final Z zero, final BiFunction<Z, R, Z> op) {
+  public <Z> FoldTask<Z> fold(final Z zero, final BiFunction<Z, R, Z> op) {
     return fold(zero, op, foldable());
   }
 
@@ -88,7 +97,12 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     return checkEmptyAsync(last(foldable()));
   }
 
-  public Task<List<R>> all() {
+
+  //TODO instead of changing signature, add Task.within()
+  //because otherwise FoldTask.map would have to also return FoldTask
+  //TODO how does within propagate???
+
+  public FoldTask<List<R>> all() {
     return all(foldable());
   }
 
@@ -98,6 +112,12 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
 
   public Task<R> find(final Predicate<R> predicate) {
     return checkEmptyAsync(find(predicate, foldable()));
+  }
+
+  public Task<?> task() {
+    return foldable().fold(Optional.empty(), acking(transduce((z, r) -> {
+      return Step.cont(z);
+    })));
   }
 
   /*

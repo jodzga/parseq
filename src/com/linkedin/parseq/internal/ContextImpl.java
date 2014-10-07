@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
@@ -200,15 +201,28 @@ public class ContextImpl implements Context, Cancellable
     final List<Task<?>> predecessorTasks = Collections.unmodifiableList(tmpPredecessorTasks);
 
     return new After() {
+
       @Override
       public void run(final Task<?> task)
       {
-        InternalUtil.after(new PromiseListener()
+        InternalUtil.after(new PromiseListener<Object>()
         {
           @Override
-          public void onResolved(Promise resolvedPromise)
+          public void onResolved(Promise<Object> resolvedPromise)
           {
             runSubTask(task, predecessorTasks);
+          }
+        }, promises);
+      }
+
+      @Override
+      public void run(final Supplier<Task<?>> taskSupplier) {
+        InternalUtil.after(new PromiseListener<Object>()
+        {
+          @Override
+          public void onResolved(Promise<Object> resolvedPromise)
+          {
+            runSubTask(taskSupplier.get(), predecessorTasks);
           }
         }, promises);
       }

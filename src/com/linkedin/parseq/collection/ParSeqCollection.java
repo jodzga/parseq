@@ -16,7 +16,7 @@ import com.linkedin.parseq.transducer.Transducer;
 
 /**
  *
- * @author jodzga
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  *
  * @param <T>
  * @param <R>

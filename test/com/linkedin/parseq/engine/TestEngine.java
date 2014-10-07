@@ -16,19 +16,10 @@
 
 package com.linkedin.parseq.engine;
 
-import com.linkedin.parseq.TestUtil;
-import com.linkedin.parseq.engine.Engine;
-import com.linkedin.parseq.engine.EngineBuilder;
-import com.linkedin.parseq.promise.Promise;
-import com.linkedin.parseq.promise.Promises;
-import com.linkedin.parseq.task.BaseTask;
-import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.Task;
-import com.linkedin.parseq.task.Tasks;
-
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import static com.linkedin.parseq.TestUtil.withDisabledLogging;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertFalse;
+import static org.testng.AssertJUnit.assertTrue;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -39,10 +30,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static com.linkedin.parseq.TestUtil.withDisabledLogging;
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertTrue;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import com.linkedin.parseq.TestUtil;
+import com.linkedin.parseq.promise.Promise;
+import com.linkedin.parseq.promise.Promises;
+import com.linkedin.parseq.task.BaseTask;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Task;
 
 /**
  * @author Chris Pettitt
@@ -134,8 +131,8 @@ public class TestEngine
   {
     final CountDownLatch finishLatch = new CountDownLatch(1);
 
-    final String predValue = "task executed";
-    final String sucValue = "task executed";
+    final String predValue = "1st task executed";
+    final String sucValue = "2nd task executed";
 
     final Task<String> predTask = new BaseTask<String>()
     {
@@ -147,7 +144,7 @@ public class TestEngine
       }
     };
     final Task<String> sucTask = TestUtil.value(sucValue);
-    final Task<String> seq = Tasks.seq(predTask, sucTask);
+    final Task<String> seq = predTask.flatMap(s -> sucTask);
 
     _engine.run(seq);
     _engine.shutdown();
@@ -156,6 +153,7 @@ public class TestEngine
     assertFalse(_engine.awaitTermination(50, TimeUnit.MILLISECONDS));
     assertTrue(_engine.isShutdown());
     assertFalse(_engine.isTerminated());
+
     finishLatch.countDown();
     assertTrue(_engine.awaitTermination(50, TimeUnit.MILLISECONDS));
     assertTrue(_engine.isShutdown());

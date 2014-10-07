@@ -16,11 +16,14 @@
 
 package com.linkedin.parseq.task;
 
+import java.util.function.Supplier;
+
 /**
  * An object that invokes tasks after as set of
  * {@link com.linkedin.parseq.promise.Promise}s and {@link Task}s have completed.
  *
  * @author Chris Pettitt (cpettitt@linkedin.com)
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public interface After
 {
@@ -31,5 +34,14 @@ public interface After
    * @param task the task to run
    */
   void run(Task<?> task);
+
+  /**
+   * When all promises and tasks have been resolved then task provided by
+   * given Supplier is run. Supplier will be called with After semantics e.g.
+   * when all Promises are resolved.
+   *
+   * @param task the task to run
+   */
+  void run(Supplier<Task<?>> taskSupplier);
 
 }

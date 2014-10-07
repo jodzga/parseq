@@ -12,7 +12,7 @@ import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.linkedin.parseq.task.BaseTask;
 import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.FunctionTask;
+import com.linkedin.parseq.task.FunctionalTask;
 import com.linkedin.parseq.task.Priority;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.Tasks;
@@ -62,7 +62,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask
       @Override
       public void onNext(final AckValue<Task<T>> task) {
         if (!_streamingComplete) {
-          scheduleTask(new FunctionTask<T, T>("step(" + _name + ")", task.get(),
+          scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
               (p, t) -> {
                 try
                 {

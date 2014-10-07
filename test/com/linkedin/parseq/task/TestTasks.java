@@ -35,17 +35,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.testng.annotations.Test;
 
 import com.linkedin.parseq.TestUtil;
+import com.linkedin.parseq.collection.Collections;
 import com.linkedin.parseq.engine.BaseEngineTest;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromiseListener;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.linkedin.parseq.task.BaseTask;
-import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.Priority;
-import com.linkedin.parseq.task.Task;
-import com.linkedin.parseq.task.Tasks;
-import com.linkedin.parseq.task.ThrowableCallable;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
@@ -199,7 +194,7 @@ public class TestTasks extends BaseEngineTest
     }
 
     // final task runs all the tasks in parallel
-    final Task<?> timeoutTask = Tasks.par(tasks);
+    final Task<?> timeoutTask = Collections.par(tasks).all();
 
     getEngine().run(timeoutTask);
 
@@ -265,10 +260,10 @@ public class TestTasks extends BaseEngineTest
   public void testThrowableCallableNoError() throws InterruptedException
   {
     final Integer magic = 0x5f3759df;
-    final ThrowableCallable<Integer> callable = new ThrowableCallable<Integer>()
+    final Callable<Integer> callable = new Callable<Integer>()
     {
       @Override
-      public Integer call() throws Throwable
+      public Integer call()
       {
         return magic;
       }
@@ -287,11 +282,11 @@ public class TestTasks extends BaseEngineTest
   @Test
   public void testThrowableCallableWithError() throws InterruptedException
   {
-    final Throwable throwable = new Throwable();
-    final ThrowableCallable<Integer> callable = new ThrowableCallable<Integer>()
+    final RuntimeException throwable = new RuntimeException();
+    final Callable<Integer> callable = new Callable<Integer>()
     {
       @Override
-      public Integer call() throws Throwable
+      public Integer call()
       {
         throw throwable;
       }

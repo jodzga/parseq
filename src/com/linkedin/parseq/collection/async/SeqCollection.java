@@ -14,7 +14,7 @@ public class SeqCollection<T, R> extends AsyncCollection<T, R> {
   }
 
   @Override
-  protected <Z> Foldable<Z, T, Task<Z>> foldable() {
+  protected <Z> Foldable<Z, T, FoldTask<Z>> foldable() {
     return new SeqFoldable<Z, T>(_input, _predecessor);
   }
 

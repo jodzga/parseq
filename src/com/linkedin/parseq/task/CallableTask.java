@@ -16,10 +16,11 @@
 
 package com.linkedin.parseq.task;
 
+import java.util.concurrent.Callable;
+
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
-
-import java.util.concurrent.Callable;
+import com.linkedin.parseq.util.Objects;
 
 /**
  * A {@link Task} that will run a {@link Callable} and will set the task's value
@@ -29,37 +30,26 @@ import java.util.concurrent.Callable;
  * instances of this class.
  *
  * @author Chris Pettitt (cpettitt@linkedin.com)
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 /* package private */ class CallableTask<T> extends BaseTask<T>
 {
-  private final ThrowableCallable<? extends T> _callable;
+  private final Callable<? extends T> _callable;
 
   public CallableTask(final String name, final Callable<? extends T> callable)
   {
-    this(name, adaptCallable(callable));
-  }
-
-  public CallableTask(final String name, final ThrowableCallable<? extends T> callable)
-  {
     super(name);
+    Objects.requireNonNull(callable);
     _callable = callable;
   }
 
   @Override
   protected Promise<? extends T> run(final Context context) throws Throwable
   {
-    return Promises.value(_callable.call());
-  }
-
-  private static <T> ThrowableCallable<T> adaptCallable(final Callable<? extends T> callable)
-  {
-    return new ThrowableCallable<T>()
-    {
-      @Override
-      public T call() throws Throwable
-      {
-        return callable.call();
-      }
-    };
+    try {
+      return Promises.value(_callable.call());
+    } catch (Throwable t) {
+      return Promises.error(t);
+    }
   }
 }

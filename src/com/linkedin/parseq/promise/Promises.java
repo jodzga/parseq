@@ -23,9 +23,12 @@ import java.util.function.Function;
  * work with {@link Promise}s.
  *
  * @author Chris Pettitt (cpettitt@linkedin.com)
+ * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
 public class Promises
 {
+  public static final Promise<Void> VOID = value(null);
+
   private Promises() {}
 
   /**
@@ -35,8 +38,12 @@ public class Promises
    * @param <T> the type of the value for the promise
    * @return the promise
    */
+  @SuppressWarnings("unchecked")
   public static <T> Promise<T> value(final T value)
   {
+    if (value == null) {
+      return (Promise<T>) VOID;
+    }
     return new ResolvedValue<T>(value);
   }
 

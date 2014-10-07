@@ -1,13 +1,8 @@
 package com.linkedin.parseq.task;
 
-import org.testng.annotations.Test;
-
-import com.linkedin.parseq.engine.BaseEngineTest;
-import com.linkedin.parseq.engine.Engine;
-import com.linkedin.parseq.engine.EngineBuilder;
-import com.linkedin.parseq.task.AsyncCallableTask;
-import com.linkedin.parseq.task.ParTask;
-import com.linkedin.parseq.task.Task;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertFalse;
+import static org.testng.AssertJUnit.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +13,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static com.linkedin.parseq.task.Tasks.par;
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertTrue;
+import org.testng.annotations.Test;
+
+import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.engine.BaseEngineTest;
+import com.linkedin.parseq.engine.Engine;
+import com.linkedin.parseq.engine.EngineBuilder;
 
 /**
  * @author wfender
@@ -38,7 +35,7 @@ public class TestAsyncCallableTask extends BaseEngineTest
     final int size = 2; // Degree of parallelism
     final CountDownLatch latch = new CountDownLatch(size);
 
-    final List<AsyncCallableTask<Void>> tasks = new ArrayList<AsyncCallableTask<Void>>(size);
+    final List<Task<Void>> tasks = new ArrayList<Task<Void>>(size);
     for (int counter = 0; counter < size; counter++)
     {
       tasks.add(counter, new AsyncCallableTask<Void>(new Callable<Void>() {
@@ -55,14 +52,10 @@ public class TestAsyncCallableTask extends BaseEngineTest
       }));
     }
 
-    final ParTask<Void> par = par(tasks);
+    final Task<?> par = Collections.par(tasks).task();
     getEngine().run(par);
 
     assertTrue(par.await(5, TimeUnit.SECONDS));
-
-    assertEquals(2, par.getSuccessful().size());
-    assertEquals(2, par.getTasks().size());
-    assertEquals(2, par.get().size());
 
     for (int counter = 0; counter < size; counter++)
     {

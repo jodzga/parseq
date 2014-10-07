@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 import static com.linkedin.parseq.task.Tasks.action;
 import static com.linkedin.parseq.task.Tasks.par;
-import static com.linkedin.parseq.task.Tasks.seq;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
@@ -100,14 +99,14 @@ public class ClassifierPlanFactory
       ctx.createTimer(1, TimeUnit.SECONDS, defaultClassifier);
 
       // ORDERING
-      final Task<?> ordering =
-          seq(selfClassifier,
-              par(seq(network, directlyConnectedClassifier),
-                  invitedToGroupClassifier,
-                  messagedClassifier),
-              par(inNetworkClassifier,
-                  sharesGroupClassifier),
-              defaultClassifier);
+      final Task<?> ordering = selfClassifier
+            .andThen(par(network.andThen(directlyConnectedClassifier),
+                         invitedToGroupClassifier,
+                         messagedClassifier))
+            .andThen(par(inNetworkClassifier,
+                         sharesGroupClassifier))
+            .andThen(defaultClassifier);
+
       ctx.run(ordering);
 
       return _result;
@@ -134,7 +133,7 @@ public class ClassifierPlanFactory
 
       final Task<?> classifyResult = truthMapClassifyTask(name, classification, svcCall);
 
-      return seq(svcCall, classifyResult);
+      return svcCall.andThen(classifyResult);
     }
 
     private Task<?> truthMapClassifyTask(final String name,

@@ -1,7 +1,7 @@
 /* $Id$ */
-package com.linkedin.parseq.example.functional.simple;
+package com.linkedin.parseq.example.simple;
 
-import static com.linkedin.parseq.example.common.ExampleUtil.*;
+import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 import java.util.concurrent.TimeUnit;
 
@@ -14,11 +14,11 @@ import com.linkedin.parseq.task.Task;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public class FunctionalDegradedExperienceExample extends AbstractExample
+public class CalcellationExample extends AbstractExample
 {
   public static void main(String[] args) throws Exception
   {
-    new FunctionalDegradedExperienceExample().runExample();
+    new CalcellationExample().runExample();
   }
 
   @Override
@@ -28,16 +28,21 @@ public class FunctionalDegradedExperienceExample extends AbstractExample
 
 
     final Task<Integer> fetchAndLength =
-        fetchUrl(httpClient, "http://www.google.com", 100)
-          .withTimeout(200, TimeUnit.MILLISECONDS)
+        fetchUrl(httpClient, "http://www.google.com", 10000)
+          .withTimeout(5000, TimeUnit.MILLISECONDS)
           .recover("default", t -> "")
-          .map("length", s -> s.length());
+          .map("length", s -> s.length())
+          .andThen("big bang", x -> System.exit(1));
 
     engine.run(fetchAndLength);
+    Thread.sleep(20);
+    fetchAndLength.cancel(new Exception("because I said so"));
 
     fetchAndLength.await();
 
-    System.out.println("Response length: " + fetchAndLength.get());
+    System.out.println(!fetchAndLength.isFailed()
+        ? "Received result: " + fetchAndLength.get()
+        : "Error: " + fetchAndLength.getError());
 
     ExampleUtil.printTracingResults(fetchAndLength);
   }

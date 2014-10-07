@@ -19,9 +19,12 @@ import com.linkedin.parseq.engine.EngineBuilder;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.util.Objects;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+
+//TODO refactor this to use less hacky way of integrating external executor services
 
 /**
  * This class provides a wrapper to allow synchronous tasks to be treated as
@@ -56,6 +59,7 @@ public class AsyncCallableTask<R> extends BaseTask<R>
   public AsyncCallableTask(final String name, final Callable<R> syncJob)
   {
     super(name);
+    Objects.requireNonNull(syncJob);
     _syncJob = syncJob;
   }
 
