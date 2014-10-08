@@ -35,7 +35,7 @@ public class ParFilterExample extends AbstractExample
 
     Task<String> find =
         Collections.par(fetchSizes)
-//          .filter("google only", s -> s.contains("google"))
+          .filter(s -> !s.contains("google"))
           .flatMap(z -> Collections.par(fetchList(httpClient, urls))
                 .filter(s -> s.contains("twitter")))
           .find(s -> s.contains("twitter"));

@@ -32,9 +32,10 @@ public class FSeqFilterExample extends AbstractExample
 
     Task<String> find =
         Collections.fromIterable(urls)
+          .filter(s -> !s.contains("linkedin"))
           .seq(url -> fetchUrl(httpClient, url)
-                                  .withTimeout(100, TimeUnit.MILLISECONDS)
-                                  .recover("default", t -> ""))
+                        .withTimeout(100, TimeUnit.MILLISECONDS)
+                        .recover("default", t -> ""))
             .filter(s -> s.contains("google"))
             .find(s -> s.contains("google"));
 
