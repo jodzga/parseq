@@ -8,16 +8,17 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.linkedin.parseq.collection.ParSeqCollection;
-import com.linkedin.parseq.collection.async.AsyncCollection;
 import com.linkedin.parseq.collection.async.ParCollection;
 import com.linkedin.parseq.collection.async.SeqCollection;
+import com.linkedin.parseq.function.Tuple2;
 import com.linkedin.parseq.internal.stream.Publisher;
-import com.linkedin.parseq.internal.stream.PushablePublisher;
 import com.linkedin.parseq.internal.stream.Subscriber;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
+
+import static com.linkedin.parseq.function.Tuples.*;
 
 /**
  * Synchronous collection does not require ParSeq engine to execute.
@@ -141,4 +142,14 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
   }
 
 
+  //TODO create a buider for iterablepublisher and triger all of them once we are done processing
+
+  public <A> SyncCollection<Tuple2<A, SyncCollection<R, R>>, Tuple2<A, SyncCollection<R, R>>> groupBy(final Function<R, A> classifier) {
+    Publisher<Tuple2<A, SyncCollection<R, R>>> publisher =
+        publisher().groupBy(classifier).map(
+            t -> t.map((key, pub) -> tuple(key, new SyncCollection<R, R>(Transducer.identity(), pub))));
+
+    return new SyncCollection<>(Transducer.identity(),
+        publisher);
+  }
 }

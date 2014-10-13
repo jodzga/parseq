@@ -55,12 +55,12 @@ public abstract class ParSeqCollection<T, R> {
    */
 
   protected <A, V extends ParSeqCollection<T, A>> V map(final Function<R, A> f,
-      Function<Transducer<T, A>, V> collectionBuilder) {
+      final Function<Transducer<T, A>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.map(ackR -> ackR.map(f)));
   }
 
   protected <V extends ParSeqCollection<T, R>> V forEach(final Consumer<R> consumer,
-      Function<Transducer<T, R>, V> collectionBuilder) {
+      final Function<Transducer<T, R>, V> collectionBuilder) {
     return map(e -> {
       consumer.accept(e);
       return e;
@@ -68,27 +68,27 @@ public abstract class ParSeqCollection<T, R> {
   }
 
   protected <V extends ParSeqCollection<T, R>> V filter(final Predicate<R> predicate,
-      Function<Transducer<T, R>, V> collectionBuilder) {
+      final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.filter(predicate));
   }
 
   protected <V extends ParSeqCollection<T, R>> V take(final int n,
-      Function<Transducer<T, R>, V> collectionBuilder) {
+      final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.take(n));
   }
 
   protected <V extends ParSeqCollection<T, R>> V takeWhile(final Predicate<R> predicate,
-      Function<Transducer<T, R>, V> collectionBuilder) {
+      final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.takeWhile(predicate));
   }
 
   protected <V extends ParSeqCollection<T, R>> V drop(final int n,
-      Function<Transducer<T, R>, V> collectionBuilder) {
+      final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.drop(n));
   }
 
   protected <V extends ParSeqCollection<T, R>> V dropWhile(final Predicate<R> predicate,
-      Function<Transducer<T, R>, V> collectionBuilder) {
+      final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.dropWhile(predicate));
   }
 

@@ -22,6 +22,10 @@ public class SyncFolder<Z, T> {
   }
 
   public Z fold(final Publisher<T> input) {
+
+    //TODO silent assumption is that subscribe will iterate over
+    //all elements of the syncpublisher
+
     input.subscribe(new Subscriber<T>() {
 
       @Override

@@ -1,8 +1,13 @@
 package com.linkedin.parseq.internal.stream;
 
 import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.function.Function;
+
+import com.linkedin.parseq.function.Tuple2;
+import static com.linkedin.parseq.function.Tuples.*;
 
 
 
@@ -40,6 +45,54 @@ public interface Publisher<T> {
           @Override
           public void onError(Throwable cause) {
             subscriber.onError(cause);
+          }
+
+        });
+      }
+
+    };
+  }
+
+  default <R> Publisher<Tuple2<R, Publisher<T>>> groupBy(final Function<T, R> classifier) {
+    final Publisher<T> that = this;
+    return new Publisher<Tuple2<R, Publisher<T>>>() {
+      private int groupCount = 0;
+
+      @Override
+      public void subscribe(final Subscriber<Tuple2<R, Publisher<T>>> subscriber) {
+
+        final Map<R, PushablePublisher<T>> publishers = new HashMap<R, PushablePublisher<T>>();
+
+        that.subscribe(new Subscriber<T>() {
+
+          @Override
+          public void onNext(final AckValue<T> element) {
+            //TODO add try/catch to all those methods
+            final R group = classifier.apply(element.get());
+            PushablePublisher<T> pub = publishers.get(group);
+            if (pub == null) {
+              pub = new PushablePublisher<T>();
+              publishers.put(group, pub);
+              subscriber.onNext(new AckValue<>(tuple(group, pub), Ack.NO_OP));
+              groupCount++;
+            }
+            pub.next(element);
+          }
+
+          @Override
+          public void onComplete(final int totalTasks) {
+            subscriber.onComplete(groupCount);
+            for (PushablePublisher<T> pub: publishers.values()) {
+              pub.complete();
+            }
+          }
+
+          @Override
+          public void onError(Throwable cause) {
+            subscriber.onError(cause);
+            for (PushablePublisher<T> pub: publishers.values()) {
+              pub.error(cause);
+            }
           }
 
         });
