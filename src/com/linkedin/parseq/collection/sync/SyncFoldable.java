@@ -1,20 +1,19 @@
 package com.linkedin.parseq.collection.sync;
 
-import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer;
 
-public class SyncFoldable<Z, T> implements Foldable<Z, T, Z> {
+public class SyncFoldable<Z, T> implements Foldable<Z, T, RichCallable<Z>>  {
 
-  private final Publisher<T> _input;
+  protected final Iterable<T> _input;
 
-  public SyncFoldable(Publisher<T> input) {
+  public SyncFoldable(Iterable<T> input) {
     _input = input;
   }
 
   @Override
-  public Z fold(Z zero, Reducer<Z, T> reducer) {
-    return new SyncFolder<Z, T>(zero, reducer).fold(_input);
+  public RichCallable<Z> fold(Z zero, Reducer<Z, T> reducer) {
+    return new SyncFoldCallable<Z, T>(_input, zero, reducer);
   }
 
 }

@@ -1,13 +1,15 @@
 package com.linkedin.parseq.internal.stream;
 
+import static com.linkedin.parseq.function.Tuples.tuple;
+
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.linkedin.parseq.function.Tuple2;
-import static com.linkedin.parseq.function.Tuples.*;
 
 
 
@@ -24,6 +26,22 @@ public interface Publisher<T> {
    * @param subscriber The subscriber to register with this publisher.
    */
   void subscribe(Subscriber<T> subscriber);
+
+
+  default Publisher<T> withSubscriber(final Subscriber<T> embeddedSubscriber) {
+    final Publisher<T> that = this;
+    return new Publisher<T>() {
+      @Override
+      public void subscribe(final Subscriber<T> subscriber) {
+        that.subscribe(embeddedSubscriber.with(subscriber));
+      }
+    };
+  }
+
+  default Tuple2<Publisher<T>, Publisher<T>> fork() {
+    final SubscribingPublisher<T> p1 = new SubscribingPublisher<T>();
+    return tuple(p1, this.withSubscriber(p1));
+  }
 
   default <R> Publisher<R> map(final Function<T, R> f) {
     final Publisher<T> that = this;
@@ -46,10 +64,40 @@ public interface Publisher<T> {
           public void onError(Throwable cause) {
             subscriber.onError(cause);
           }
-
         });
       }
+    };
+  }
 
+  default Publisher<T> filter(final Predicate<T> predicate) {
+    final Publisher<T> that = this;
+    return new Publisher<T>() {
+      private int _skipped = 0;
+      @Override
+      public void subscribe(final Subscriber<T> subscriber) {
+        that.subscribe(new Subscriber<T>() {
+
+          @Override
+          public void onNext(final AckValue<T> element) {
+            if (predicate.test(element.get())) {
+              subscriber.onNext(element);
+            } else {
+              _skipped++;
+              element.ack();
+            }
+          }
+
+          @Override
+          public void onComplete(final int totalTasks) {
+            subscriber.onComplete(totalTasks - _skipped);
+          }
+
+          @Override
+          public void onError(Throwable cause) {
+            subscriber.onError(cause);
+          }
+        });
+      }
     };
   }
 

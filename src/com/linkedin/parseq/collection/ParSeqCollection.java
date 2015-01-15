@@ -9,6 +9,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.linkedin.parseq.collection.sync.RichCallable;
+import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
@@ -49,6 +51,13 @@ public abstract class ParSeqCollection<T, R> {
     }
   }
 
+  protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
+    return result.map("checkEmpty", ParSeqCollection::checkEmpty);
+  }
+
+  protected static final <R> RichCallable<R> checkEmptySync(RichCallable<Optional<R>> result) {
+    return () -> checkEmpty(result.call());
+  }
 
   /*
    * Collection transformations:

@@ -211,6 +211,9 @@ public interface Task<T> extends Promise<T>, Cancellable
   }
 
   /**
+   * TODO side-effecting function should not affect result and should not be cancelled when
+   * parent is resolved
+   *
    * Applies the side-effecting function to the result of this Task, and returns
    * a new Task with the result of this Task to allow fluent chaining.
    *
@@ -375,17 +378,19 @@ public interface Task<T> extends Promise<T>, Cancellable
     protected final AtomicBoolean _committed = new AtomicBoolean();
     private final long _time;
     private final TimeUnit _unit;
+    private final Exception _exception;
 
-    public TimeoutContextRunWrapper(long time, TimeUnit unit) {
+    public TimeoutContextRunWrapper(long time, TimeUnit unit, final Exception exception) {
       _time = time;
       _unit = unit;
+      _exception = exception;
     }
 
     @Override
     public void before(Context context) {
       final Task<?> timeoutTask = Tasks.action("timeoutTimer", () -> {
         if (_committed.compareAndSet(false, true)) {
-          _result.fail(new TimeoutException());
+          _result.fail(_exception);
         }
       });
       //timeout tasks should run as early as possible
@@ -414,7 +419,12 @@ public interface Task<T> extends Promise<T>, Cancellable
    */
   default Task<T> withTimeout(final long time, final TimeUnit unit)
   {
-    wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit));
+    wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit, Exceptions.TIMEOUT_EXCEPTION));
+    return this;
+  }
+
+  default Task<T> within(final long time, final TimeUnit unit) {
+    wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit, Exceptions.NO_SUCH_ELEMENT_EXCEPTION));
     return this;
   }
 

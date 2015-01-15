@@ -42,7 +42,11 @@ public class Promises
   public static <T> Promise<T> value(final T value)
   {
     if (value == null) {
-      return (Promise<T>) VOID;
+      if (VOID == null) {
+        return new ResolvedValue<T>(value);
+      } else {
+        return (Promise<T>) VOID;
+      }
     }
     return new ResolvedValue<T>(value);
   }

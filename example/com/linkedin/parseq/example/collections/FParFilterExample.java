@@ -33,8 +33,8 @@ public class FParFilterExample extends AbstractExample
     Task<String> find =
         Collections.fromIterable(urls)
           .par(url -> fetchUrl(httpClient, url)
-                                  .withTimeout(100, TimeUnit.MILLISECONDS)
-                                  .recover("default", t -> ""))
+                        .withTimeout(100, TimeUnit.MILLISECONDS)
+                        .recover("default", t -> ""))
             .filter(s -> s.contains("google"))
             .find(s -> s.contains("google"));
 

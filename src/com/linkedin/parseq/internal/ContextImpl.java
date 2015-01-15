@@ -22,6 +22,7 @@ import com.linkedin.parseq.task.After;
 import com.linkedin.parseq.task.Cancellable;
 import com.linkedin.parseq.task.Context;
 import com.linkedin.parseq.task.EarlyFinishException;
+import com.linkedin.parseq.task.Exceptions;
 import com.linkedin.parseq.task.Task;
 
 import java.util.ArrayList;
@@ -41,19 +42,6 @@ public class ContextImpl implements Context, Cancellable
 {
   private static final Task<?> NO_PARENT = null;
   private static final List<Task<?>> NO_PREDECESSORS = Collections.emptyList();
-
-  private static final Exception EARLY_FINISH_EXCEPTION;
-
-  static
-  {
-    EARLY_FINISH_EXCEPTION = new EarlyFinishException("Task cancelled because parent was already finished");
-
-    // Clear out everything but the last frame
-    final StackTraceElement[] stackTrace = EARLY_FINISH_EXCEPTION.getStackTrace();
-    if (stackTrace.length > 0) {
-      EARLY_FINISH_EXCEPTION.setStackTrace(Arrays.copyOf(EARLY_FINISH_EXCEPTION.getStackTrace(), 1));
-    }
-  }
 
   /**
    * Plan level configuration and facilities.
@@ -100,7 +88,7 @@ public class ContextImpl implements Context, Cancellable
         for (Iterator<Cancellable> it = _cancellables.iterator(); it.hasNext(); )
         {
           final Cancellable cancellable = it.next();
-          cancellable.cancel(EARLY_FINISH_EXCEPTION);
+          cancellable.cancel(Exceptions.EARLY_FINISH_EXCEPTION);
           it.remove();
         }
       }
@@ -280,7 +268,7 @@ public class ContextImpl implements Context, Cancellable
     }
     else
     {
-      subContext.cancel(EARLY_FINISH_EXCEPTION);
+      subContext.cancel(Exceptions.EARLY_FINISH_EXCEPTION);
     }
   }
 

@@ -32,7 +32,6 @@ public class FSeqFilterExample extends AbstractExample
 
     Task<String> find =
         Collections.fromIterable(urls)
-          .filter(s -> !s.contains("linkedin"))
           .seq(url -> fetchUrl(httpClient, url)
                         .withTimeout(100, TimeUnit.MILLISECONDS)
                         .recover("default", t -> ""))
@@ -47,5 +46,4 @@ public class FSeqFilterExample extends AbstractExample
 
     ExampleUtil.printTracingResults(find);
   }
-
 }

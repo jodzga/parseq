@@ -22,7 +22,7 @@ import com.linkedin.parseq.transducer.Reducer.Step;
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask<B> {
+public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
 
   abstract void scheduleTask(Task<T> task, Context context, Task<B> rootTask);
 
@@ -158,6 +158,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask
     public void before(Context context) {
       final Task<?> withinTask = Tasks.action("withinTimer", () -> {
         if (_committed.compareAndSet(false, true)) {
+          //
           _streamingComplete = true;
           _result.done(_partialResult);
         }
@@ -179,7 +180,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> implements FoldTask
   }
 
   @Override
-  public FoldTask<B> within(long time, TimeUnit unit) {
+  public Task<B> within(long time, TimeUnit unit) {
     wrapContextRun(new WithinContextRunWrapper(time, unit));
     return this;
   }

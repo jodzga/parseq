@@ -1,6 +1,5 @@
 package com.linkedin.parseq.collection.async;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -35,7 +34,7 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     _predecessor = predecessor;
   }
 
-  protected abstract <Z> Foldable<Z, T, FoldTask<Z>> foldable();
+  protected abstract <Z> Foldable<Z, T, Task<Z>> foldable();
 
   abstract <A, B> AsyncCollection<A, B> createAsyncCollection(final Publisher<Task<A>> input,
       Transducer<A, B> transducer,
@@ -81,12 +80,8 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
    * Foldings:
    */
 
-  public <Z> FoldTask<Z> fold(final Z zero, final BiFunction<Z, R, Z> op) {
+  public <Z> Task<Z> fold(final Z zero, final BiFunction<Z, R, Z> op) {
     return fold(zero, op, foldable());
-  }
-
-  protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
-    return result.map("checkEmpty", ParSeqCollection::checkEmpty);
   }
 
   public Task<R> first() {
@@ -97,12 +92,9 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     return checkEmptyAsync(last(foldable()));
   }
 
+  //TODO how does within propagate? add tests
 
-  //TODO instead of changing signature, add Task.within()
-  //because otherwise FoldTask.map would have to also return FoldTask
-  //TODO how does within propagate???
-
-  public FoldTask<List<R>> all() {
+  public Task<List<R>> all() {
     return all(foldable());
   }
 

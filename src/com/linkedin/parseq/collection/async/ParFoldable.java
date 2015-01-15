@@ -13,7 +13,7 @@ public class ParFoldable<Z, T> extends AsyncFoldable<Z, T> {
   }
 
   @Override
-  public FoldTask<Z> fold(Z zero, Reducer<Z, T> reducer) {
+  public Task<Z> fold(Z zero, Reducer<Z, T> reducer) {
     return new ParFoldTask<Z, T>("par fold TODO", _input, zero, reducer, _predecessor);
   }
 

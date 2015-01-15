@@ -6,7 +6,7 @@ import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Foldable;
 
-public abstract class AsyncFoldable<Z, T> implements Foldable<Z, T, FoldTask<Z>>  {
+public abstract class AsyncFoldable<Z, T> implements Foldable<Z, T, Task<Z>>  {
 
   protected final Publisher<Task<T>> _input;
   protected final Optional<Task<?>> _predecessor;

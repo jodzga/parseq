@@ -28,4 +28,28 @@ public interface Subscriber<T> {
    * @param cause An exception which describes the reason for tearing down this stream.
    */
   public void onError(Throwable cause);
+
+  default Subscriber<T> with(final Subscriber<T> subscriber) {
+    final Subscriber<T> that = this;
+    return new Subscriber<T>() {
+
+      @Override
+      public void onNext(AckValue<T> element) {
+        that.onNext(element);
+        subscriber.onNext(element);
+      }
+
+      @Override
+      public void onComplete(final int totalTasks) {
+        that.onComplete(totalTasks);
+        subscriber.onComplete(totalTasks);
+      }
+
+      @Override
+      public void onError(final Throwable cause) {
+        that.onError(cause);
+        subscriber.onError(cause);
+      }
+    };
+  }
 }
