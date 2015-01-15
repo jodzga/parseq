@@ -18,6 +18,8 @@ package com.linkedin.parseq.task;
 
 import java.util.concurrent.Callable;
 
+import com.linkedin.parseq.collection.sync.RichCallable;
+
 /**
  * This class provides a set of factory methods for create common
  * {@link Task}s.
@@ -49,20 +51,7 @@ public class Tasks
     return new ActionTask(name, runnable);
   }
 
-
-
-  /**
-   * Creates a new {@link Task} that's value will be set to the value returned
-   * from the supplied callable. This task is useful when doing basic
-   * computation that does not require asynchrony. It is not appropriate for
-   * long running or blocking tasks.
-   *
-   * @param name a name that describes the action
-   * @param callable the callable to execute when this task is run
-   * @param <T> the type of the return value for this task
-   * @return the new task
-   */
-  public static <T> Task<T> callable(final String name, final Callable<? extends T> callable) {
+  public static <T> Task<T> callable(final String name, final RichCallable<? extends T> callable) {
     return new CallableTask<T>(name, callable);
   }
 

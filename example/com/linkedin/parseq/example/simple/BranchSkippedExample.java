@@ -4,8 +4,6 @@ package com.linkedin.parseq.example.simple;
 import static com.linkedin.parseq.example.common.ExampleUtil.callService;
 import static com.linkedin.parseq.example.common.ExampleUtil.printTracingResults;
 
-import java.util.concurrent.Callable;
-
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.MockService;
@@ -50,7 +48,7 @@ public class BranchSkippedExample extends AbstractExample
 
   private static Task<Integer> add(final int x, final int toAdd)
   {
-    return Tasks.callable("add " + toAdd, (Callable<Integer>)() -> x + toAdd);
+    return Tasks.callable("add " + toAdd, () -> x + toAdd);
   }
 
   private Task<Integer> fetchX(final MockService<Integer> serviceX,

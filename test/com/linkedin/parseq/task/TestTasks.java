@@ -25,7 +25,6 @@ import static org.testng.AssertJUnit.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -129,14 +128,8 @@ public class TestTasks extends BaseEngineTest
   public void testWithoutTimeout() throws InterruptedException
   {
     final String value = "value";
-    final Task<String> timeoutTask = Tasks.callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        return value;
-      }
-    }).withTimeout(200, TimeUnit.MILLISECONDS);
+    final Task<String> timeoutTask = Tasks.callable("task", () -> value)
+        .withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
 
@@ -148,15 +141,9 @@ public class TestTasks extends BaseEngineTest
   @Test
   public void testTimeoutTaskWithError() throws InterruptedException
   {
-    final Exception error = new Exception();
-    final Task<String> timeoutTask = Tasks.callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        throw error;
-      }
-    }).withTimeout(200, TimeUnit.MILLISECONDS);
+    final RuntimeException error = new RuntimeException();
+    final Task<Object> timeoutTask = Tasks.callable("task", () -> { throw error; })
+      .withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
 
@@ -260,15 +247,7 @@ public class TestTasks extends BaseEngineTest
   public void testThrowableCallableNoError() throws InterruptedException
   {
     final Integer magic = 0x5f3759df;
-    final Callable<Integer> callable = new Callable<Integer>()
-    {
-      @Override
-      public Integer call()
-      {
-        return magic;
-      }
-    };
-    final Task<Integer> task = Tasks.callable("magic", callable);
+    final Task<Integer> task = Tasks.callable("magic", () -> magic);
 
     getEngine().run(task);
     task.await(100, TimeUnit.MILLISECONDS);
@@ -283,15 +262,7 @@ public class TestTasks extends BaseEngineTest
   public void testThrowableCallableWithError() throws InterruptedException
   {
     final RuntimeException throwable = new RuntimeException();
-    final Callable<Integer> callable = new Callable<Integer>()
-    {
-      @Override
-      public Integer call()
-      {
-        throw throwable;
-      }
-    };
-    final Task<Integer> task = Tasks.callable("error", callable);
+    final Task<Object> task = Tasks.callable("error", () -> { throw throwable; });
 
     getEngine().run(task);
     task.await(100, TimeUnit.MILLISECONDS);

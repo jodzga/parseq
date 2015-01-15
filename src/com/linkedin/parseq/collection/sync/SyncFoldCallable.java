@@ -23,7 +23,7 @@ public class SyncFoldCallable<B, T> implements RichCallable<B> {
   }
 
   @Override
-  public B call() throws Exception {
+  public B call() {
     for (T value: _values) {
       Step<B> step = _reducer.apply(_partialResult, new AckValue<T>(value, Ack.NO_OP));
       switch (step.getType()) {

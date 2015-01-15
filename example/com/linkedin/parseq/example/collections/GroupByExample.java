@@ -1,6 +1,8 @@
 /* $Id$ */
 package com.linkedin.parseq.example.collections;
 
+import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -8,6 +10,7 @@ import com.linkedin.parseq.collection.Collections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
+import com.linkedin.parseq.example.common.MockService;
 import com.linkedin.parseq.task.Task;
 
 /**
@@ -23,21 +26,26 @@ public class GroupByExample extends AbstractExample
   @Override
   protected void doRunExample(final Engine engine) throws Exception
   {
-//    List<Integer> ints = Arrays.asList(1, 2, 3, 4, 5, 6, 2, 3, 5, 3);
-//
-//    Task<?> task = Collections.fromIterable(ints)
-//        .groupBy(i -> i)
-//        .forEach(group -> {
-//            System.out.println("group: " + group._1() + ": "
-//              + group._2().map(i -> i.toString() + ", ").reduce((a, b) -> a + ", " + b));
-//        })
-//        .all();
-//
-//    engine.run(task);
-//
-//    task.await();
-//
-//    ExampleUtil.printTracingResults(task);
+    final MockService<String> httpClient = getService();
+    List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com",
+        "http://www.linkedin.com", "http://www.google.com", "http://www.linkedin.com");
 
+    Task<String> result =
+        Collections.fromIterable(urls)
+          .par(url -> fetchUrl(httpClient, url))
+          .groupBy(i -> i)
+          .mapTask(group ->
+                    (Task<String>)group._2()
+                      .count()
+                      .map(cnt -> "group: " + group._1() + ", count: " + cnt))
+          .reduce((a, b) -> a + "\n" + b );
+
+    engine.run(result);
+
+    result.await();
+
+    System.out.println(result.get());
+
+    ExampleUtil.printTracingResults(result);
   }
 }

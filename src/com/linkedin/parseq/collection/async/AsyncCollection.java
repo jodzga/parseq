@@ -8,6 +8,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.linkedin.parseq.collection.ParSeqCollection;
+import com.linkedin.parseq.collection.sync.RichCallable;
+import com.linkedin.parseq.collection.sync.SyncCollection;
+import com.linkedin.parseq.function.Tuple2;
 import com.linkedin.parseq.internal.stream.Publisher;
 import com.linkedin.parseq.internal.stream.PushablePublisher;
 import com.linkedin.parseq.task.Task;
@@ -106,6 +109,10 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     return checkEmptyAsync(find(predicate, foldable()));
   }
 
+  public Task<Integer> count() {
+    return all().map(r -> r.size());
+  }
+
   public Task<?> task() {
     return foldable().fold(Optional.empty(), acking(transduce((z, r) -> {
       return Step.cont(z);
@@ -142,6 +149,11 @@ public abstract class AsyncCollection<T, R> extends ParSeqCollection<T, R> {
     Task<?> publisherTask = publisherTask(pushablePublisher);
     Function<R, Publisher<Task<A>>> mapper = r -> f.apply(r)._input;
     return createAsyncCollection(pushablePublisher.flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
+  }
+
+  public <A> AsyncCollection<Tuple2<A, AsyncCollection<R, R>>, Tuple2<A, AsyncCollection<R, R>>> groupBy(final Function<R, A> classifier) {
+
+    return null;
   }
 
 }

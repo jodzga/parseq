@@ -1,7 +1,13 @@
 package com.linkedin.parseq.collection.sync;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -21,6 +27,8 @@ import com.linkedin.parseq.task.Tasks;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
+
+import static com.linkedin.parseq.function.Tuples.*;
 
 /**
  * Synchronous collection which does not require ParSeq engine to execute.
@@ -105,6 +113,10 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
     return checkEmptySync(find(predicate, foldable()));
   }
 
+  public RichCallable<Integer> count() {
+    return all().map(r -> r.size());
+  }
+
   /*
    * FlatMaps:
    */
@@ -143,7 +155,38 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
   }
 
   public <A> SyncCollection<Tuple2<A, SyncCollection<R, R>>, Tuple2<A, SyncCollection<R, R>>> groupBy(final Function<R, A> classifier) {
-    //TODO
-    return null;
+    Iterable<Tuple2<A, SyncCollection<R, R>>> dataSource = new Iterable<Tuple2<A,SyncCollection<R,R>>>() {
+      @Override
+      public Iterator<Tuple2<A, SyncCollection<R, R>>> iterator() {
+        final Map<A, List<R>> innerMap = new HashMap<A, List<R>>();
+        for (R element: all().call()) {
+          A group = classifier.apply(element);
+          List<R> list = innerMap.get(group);
+          if (list == null) {
+            list = new ArrayList<R>();
+            innerMap.put(group, list);
+          }
+          list.add(element);
+        }
+        return new Iterator<Tuple2<A, SyncCollection<R, R>>>() {
+
+          private final Iterator<Entry<A, List<R>>> _entrySetIterator =
+              innerMap.entrySet().iterator();
+
+          @Override
+          public boolean hasNext() {
+            return _entrySetIterator.hasNext();
+          }
+
+          @Override
+          public Tuple2<A, SyncCollection<R, R>> next() {
+            Entry<A, List<R>> entry = _entrySetIterator.next();
+            return tuple(entry.getKey(), Collections.fromIterable(entry.getValue()));
+          }
+
+        };
+      }
+    };
+    return new SyncCollection<Tuple2<A,SyncCollection<R,R>>, Tuple2<A,SyncCollection<R,R>>>(Transducer.identity(), dataSource);
   }
 }

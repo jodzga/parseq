@@ -1,11 +1,12 @@
 package com.linkedin.parseq.collection.sync;
 
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 @FunctionalInterface
-public interface RichCallable<T> extends Callable<T> {
+public interface RichCallable<T> {
+
+  T call();
 
   default <R> RichCallable<R> map(final Function<T, R> f) {
     return () -> f.apply(call());
@@ -19,9 +20,10 @@ public interface RichCallable<T> extends Callable<T> {
     };
   }
 
-  default <R> RichCallable<R> flatMap(final Function<T, Callable<R>> f) {
+  default <R> RichCallable<R> flatMap(final Function<T, RichCallable<R>> f) {
     return () -> f.apply(call()).call();
   }
+
 
   //TODO rest of combinators
 

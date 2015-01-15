@@ -16,6 +16,21 @@
 
 package com.linkedin.parseq.task;
 
+import static com.linkedin.parseq.task.Tasks.callable;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertFalse;
+import static org.testng.AssertJUnit.assertNull;
+import static org.testng.AssertJUnit.assertTrue;
+import static org.testng.AssertJUnit.fail;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.testng.annotations.Test;
+
 import com.linkedin.parseq.TestUtil;
 import com.linkedin.parseq.internal.TaskLogger;
 import com.linkedin.parseq.promise.Promise;
@@ -23,28 +38,6 @@ import com.linkedin.parseq.promise.PromiseException;
 import com.linkedin.parseq.promise.PromiseUnresolvedException;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.linkedin.parseq.task.After;
-import com.linkedin.parseq.task.BaseTask;
-import com.linkedin.parseq.task.Cancellable;
-import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.Task;
-import com.linkedin.parseq.task.Tasks;
-
-import org.testng.annotations.Test;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.linkedin.parseq.task.Tasks.callable;
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertNull;
-import static org.testng.AssertJUnit.assertTrue;
-import static org.testng.AssertJUnit.fail;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
@@ -100,14 +93,7 @@ public class TestTaskStates
   public void testRun() throws InterruptedException
   {
     final String result = "result";
-    final Task<String> task = callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        return result;
-      }
-    });
+    final Task<String> task = callable("task", () -> result);
 
     runTask(task);
 
@@ -152,15 +138,8 @@ public class TestTaskStates
   @Test
   public void testRunWithSyncError() throws InterruptedException
   {
-    final Exception exception = new Exception();
-    final Task<String> task = callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        throw exception;
-      }
-    });
+    final RuntimeException exception = new RuntimeException();
+    final Task<String> task = callable("task", () -> { throw exception; });
 
     runTask(task);
 
@@ -195,14 +174,7 @@ public class TestTaskStates
   public void testSetPriorityAfterRun() throws InterruptedException
   {
     final String result = "result";
-    final Task<String> task = Tasks.callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        return result;
-      }
-    });
+    final Task<String> task = Tasks.callable("task", () -> result);
 
     runTask(task);
 
@@ -225,16 +197,16 @@ public class TestTaskStates
     // Used to finish the sync task
     final CountDownLatch finishLatch = new CountDownLatch(1);
 
-    final Task<String> task = callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
+    final Task<String> task = callable("task", () ->
       {
         startLatch.countDown();
-        finishLatch.await();
+        try {
+          finishLatch.await();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
         return result;
-      }
-    });
+      });
 
     final Thread thread = new Thread(new Runnable()
     {
@@ -299,14 +271,7 @@ public class TestTaskStates
   public void testCancelAfterDone() throws InterruptedException
   {
     final String result = "result";
-    final Task<String> task = callable("task", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        return result;
-      }
-    });
+    final Task<String> task = callable("task", () -> result);
 
     runTask(task);
 

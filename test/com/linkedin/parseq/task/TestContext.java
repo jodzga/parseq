@@ -16,29 +16,24 @@
 
 package com.linkedin.parseq.task;
 
+import static com.linkedin.parseq.task.Tasks.action;
+import static com.linkedin.parseq.task.Tasks.callable;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertTrue;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.testng.annotations.Test;
+
 import com.linkedin.parseq.TestUtil;
 import com.linkedin.parseq.engine.BaseEngineTest;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.linkedin.parseq.task.BaseTask;
-import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.Task;
-import com.linkedin.parseq.task.Tasks;
-
-import org.testng.annotations.Test;
-
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static com.linkedin.parseq.task.Tasks.action;
-import static com.linkedin.parseq.task.Tasks.callable;
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertTrue;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
@@ -151,14 +146,7 @@ public class TestContext extends BaseEngineTest
   {
     final String value = "done";
 
-    final Task<String> innerTask = callable("innerTask", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        return value;
-      }
-    });
+    final Task<String> innerTask = callable("innerTask", () -> value);
 
     final Task<String> task = new BaseTask<String>()
     {
@@ -184,23 +172,11 @@ public class TestContext extends BaseEngineTest
 
     final AtomicReference<String> predecessorValueRef = new AtomicReference<String>();
 
-    final Task<String> predecessorTask = callable("predecessorTask", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
-        return predecessorValue;
-      }
-    });
+    final Task<String> predecessorTask = callable("predecessorTask", () -> predecessorValue);
 
-    final Task<String> successorTask = callable("successorTask", new Callable<String>()
-    {
-      @Override
-      public String call() throws Exception
-      {
+    final Task<String> successorTask = callable("successorTask", () -> {
         predecessorValueRef.set(predecessorTask.get());
         return successorValue;
-      }
     });
 
     final Task<String> task = new BaseTask<String>()
