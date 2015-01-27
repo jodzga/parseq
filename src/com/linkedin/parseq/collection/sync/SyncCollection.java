@@ -1,5 +1,7 @@
 package com.linkedin.parseq.collection.sync;
 
+import static com.linkedin.parseq.function.Tuples.tuple;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -7,28 +9,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.linkedin.parseq.collection.Collections;
-import com.linkedin.parseq.collection.ParSeqCollection;
-import com.linkedin.parseq.collection.async.AsyncCollection;
 import com.linkedin.parseq.collection.async.ParCollection;
 import com.linkedin.parseq.collection.async.SeqCollection;
 import com.linkedin.parseq.function.Tuple2;
-import com.linkedin.parseq.internal.stream.Publisher;
-import com.linkedin.parseq.internal.stream.PushablePublisher;
+import com.linkedin.parseq.stream.PushablePublisher;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.Tasks;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Reducer.Step;
+import com.linkedin.parseq.transducer.Transducible;
 import com.linkedin.parseq.transducer.Transducer;
-
-import static com.linkedin.parseq.function.Tuples.*;
 
 /**
  * Synchronous collection which does not require ParSeq engine to execute.
@@ -36,7 +32,7 @@ import static com.linkedin.parseq.function.Tuples.*;
  * @author jodzga
  *
  */
-public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
+public class SyncCollection<T, R> extends Transducible<T, R> {
 
   protected final Iterable<T> _input;
 
@@ -140,13 +136,13 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
   public <A> ParCollection<A, A> par(final Function<R, Task<A>> f) {
     PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
     Task<?> publisherTask = publisherTask(pushablePublisher);
-    return new ParCollection<A, A>(Transducer.identity(), pushablePublisher.map(f), Optional.of(publisherTask));
+    return new ParCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
   }
 
   public <A> SeqCollection<A, A> seq(final Function<R, Task<A>> f) {
     PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
     Task<?> publisherTask = publisherTask(pushablePublisher);
-    return new SeqCollection<A, A>(Transducer.identity(), pushablePublisher.map(f), Optional.of(publisherTask));
+    return new SeqCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
   }
 
   public <A> SyncCollection<A, A> flatMap(final Function<R, SyncCollection<A, A>> f) {
@@ -188,5 +184,9 @@ public class SyncCollection<T, R> extends ParSeqCollection<T, R> {
       }
     };
     return new SyncCollection<Tuple2<A,SyncCollection<R,R>>, Tuple2<A,SyncCollection<R,R>>>(Transducer.identity(), dataSource);
+  }
+
+  protected static final <R> RichCallable<R> checkEmptySync(RichCallable<Optional<R>> result) {
+    return () -> checkEmpty(result.call());
   }
 }

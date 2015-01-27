@@ -20,6 +20,7 @@ import static com.linkedin.parseq.function.Tuples.tuple;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import com.linkedin.parseq.function.Consumer3;
 import com.linkedin.parseq.function.Function3;
@@ -69,5 +70,10 @@ public class Par3Task<T1, T2, T3> extends SystemHiddenTask<Tuple3<T1, T2, T3>>
 
     return result;
   }
+
+  public <R> Task<R> map(final Function3<T1, T2, T3, R> f) {
+    return map(tuple -> f.apply(tuple._1(), tuple._2(), tuple._3()));
+  }
+
 
 }

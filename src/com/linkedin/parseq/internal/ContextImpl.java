@@ -16,23 +16,21 @@
 
 package com.linkedin.parseq.internal;
 
-import com.linkedin.parseq.promise.Promise;
-import com.linkedin.parseq.promise.PromiseListener;
-import com.linkedin.parseq.task.After;
-import com.linkedin.parseq.task.Cancellable;
-import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.EarlyFinishException;
-import com.linkedin.parseq.task.Exceptions;
-import com.linkedin.parseq.task.Task;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import com.linkedin.parseq.promise.Promise;
+import com.linkedin.parseq.promise.PromiseListener;
+import com.linkedin.parseq.task.After;
+import com.linkedin.parseq.task.Cancellable;
+import com.linkedin.parseq.task.Context;
+import com.linkedin.parseq.task.Exceptions;
+import com.linkedin.parseq.task.Task;
 
 /**
  * @author Chris Pettitt (cpettitt@linkedin.com)
@@ -85,6 +83,7 @@ public class ContextImpl implements Context, Cancellable
       @Override
       public void onResolved(Promise<Object> resolvedPromise)
       {
+        //TODO is this iteration safe? can _cancellables be modified at the same time?
         for (Iterator<Cancellable> it = _cancellables.iterator(); it.hasNext(); )
         {
           final Cancellable cancellable = it.next();

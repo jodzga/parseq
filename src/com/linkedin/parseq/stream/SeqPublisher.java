@@ -1,20 +1,25 @@
-package com.linkedin.parseq.internal.stream;
+package com.linkedin.parseq.stream;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+
+import com.linkedin.parseq.transducer.FlowControl;
 
 /**
  * A Publisher, which does not publish element until previous element has
  * been consumed.
  */
-public class SeqPublisher<T> implements Publisher<T>, Subscriber<T> {
+public class SeqPublisher<T> implements Publisher<T>, AckingSubscriber<T> {
 
   private final Publisher<T> _source;
-  private Subscriber<T> _subscriber;
+  private AckingSubscriber<T> _subscriber;
+  private Subscription _subscription;
   private final Deque<AckValue<T>> _pending = new ArrayDeque<>();
+
   private boolean _completed = false;
   private int _published = 0;
   private int _total = 0;
+
   private boolean _publishPending = true;  //publish first element
 
   public SeqPublisher(Publisher<T> source) {
@@ -22,7 +27,7 @@ public class SeqPublisher<T> implements Publisher<T>, Subscriber<T> {
   }
 
   @Override
-  public void subscribe(Subscriber<T> subscriber) {
+  public void subscribe(AckingSubscriber<T> subscriber) {
     _subscriber = subscriber;
     _source.subscribe(this);
   }
@@ -49,11 +54,20 @@ public class SeqPublisher<T> implements Publisher<T>, Subscriber<T> {
     _subscriber.onError(cause);
   }
 
-  private void onAck() {
-    if (_pending.isEmpty()) {
-      _publishPending = true;
-    } else {
-      doPublishNext();
+  private void onAck(FlowControl flow) {
+    switch (flow) {
+      case cont:
+        if (_pending.isEmpty()) {
+          _publishPending = true;
+        } else {
+          doPublishNext();
+        }
+        break;
+      case done:
+        if (!_completed) {
+          _subscription.cancel();
+        }
+        break;
     }
   }
 
@@ -69,6 +83,15 @@ public class SeqPublisher<T> implements Publisher<T>, Subscriber<T> {
     if (_completed && _published == _total) {
       _subscriber.onComplete(_total);
     }
+  }
+
+  @Override
+  public void onSubscribe(final Subscription subscription) {
+    _subscription = subscription;
+    _subscriber.onSubscribe(() -> {
+      subscription.cancel();
+      _pending.clear();
+    });
   }
 
 }

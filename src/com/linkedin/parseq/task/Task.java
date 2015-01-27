@@ -423,8 +423,9 @@ public interface Task<T> extends Promise<T>, Cancellable
     return this;
   }
 
+  //TODO: within should be introduced in AsyncCollection to bound execution time
   default Task<T> within(final long time, final TimeUnit unit) {
-    wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit, Exceptions.NO_SUCH_ELEMENT_EXCEPTION));
+    wrapContextRun(new TimeoutContextRunWrapper<T>(time, unit, Exceptions.noSuchElement()));
     return this;
   }
 

@@ -1,7 +1,8 @@
-package com.linkedin.parseq.internal.stream;
+package com.linkedin.parseq.stream;
 
 import java.util.function.Function;
 
+import com.linkedin.parseq.transducer.FlowControl;
 import com.linkedin.parseq.util.Objects;
 
 public class AckValue<T> {
@@ -19,9 +20,9 @@ public class AckValue<T> {
     return _value;
   }
 
-  public void ack() {
+  public void ack(final FlowControl flow) {
     if (_ack != Ack.NO_OP) {
-      _ack.ack();
+      _ack.ack(flow);
     }
   }
 

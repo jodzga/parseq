@@ -4,18 +4,20 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.linkedin.parseq.internal.stream.AckValue;
-import com.linkedin.parseq.internal.stream.Publisher;
-import com.linkedin.parseq.internal.stream.Subscriber;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.linkedin.parseq.stream.AckValue;
+import com.linkedin.parseq.stream.AckingSubscriber;
+import com.linkedin.parseq.stream.StreamCollection;
+import com.linkedin.parseq.stream.Subscription;
 import com.linkedin.parseq.task.BaseTask;
 import com.linkedin.parseq.task.Context;
 import com.linkedin.parseq.task.FunctionalTask;
 import com.linkedin.parseq.task.Priority;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.Tasks;
+import com.linkedin.parseq.transducer.FlowControl;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 
@@ -26,7 +28,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
 
   abstract void scheduleTask(Task<T> task, Context context, Task<B> rootTask);
 
-  protected Publisher<Task<T>> _tasks;
+  protected StreamCollection<?, Task<T>> _tasks;
   private boolean _streamingComplete = false;
   private int _totalTasks;
   private int _tasksCompleted = 0;
@@ -36,7 +38,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
   private final String _name;
 
 
-  public BaseFoldTask(final String name, final Publisher<Task<T>> tasks, final B zero,
+  public BaseFoldTask(final String name, final StreamCollection<?, Task<T>> tasks, final B zero,
       final Reducer<B, T> reducer, Optional<Task<?>> predecessor) {
     super(name);
     _partialResult = zero;
@@ -52,16 +54,16 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
   protected Promise<? extends B> run(final Context context) throws Exception
   {
     final SettablePromise<B> result = Promises.settable();
-    final Task<B> that = this;
+    final Task<B> that = this; //TODO ???
 
-    _tasks.subscribe(new Subscriber<Task<T>>() {
+    _tasks.subscribe(new AckingSubscriber<Task<T>>() {
       /**
        * It is expected that onNext method is called
        * from within Task's run method.
        */
       @Override
       public void onNext(final AckValue<Task<T>> task) {
-        if (!_streamingComplete) {
+        if (!_streamingComplete) {  //TODO questionable: when is _streamingComplete set?
           scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
               (p, t) -> {
                 try
@@ -72,7 +74,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
                       _streamingComplete = true;
                       _partialResult = null;
                       result.fail(p.getError());
-                      task.ack();
+                      task.ack(FlowControl.done);
                     } else {
                       try {
                         //ack() is called by reducer
@@ -99,7 +101,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
                     }
                   } else {
                     //result is resolved, just ack() the task
-                    task.ack();
+                    task.ack(FlowControl.done);
                   }
                 } finally {
                   //propagate result
@@ -111,7 +113,7 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
                 }
               } ), context, that);
         } else {
-          task.ack();
+          task.ack(FlowControl.done);
         }
       }
 
@@ -131,6 +133,12 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
         if (!result.isDone()) {
           result.fail(cause);
         }
+      }
+
+      @Override
+      public void onSubscribe(Subscription subscription) {
+        // TODO handle subscription cancellation
+
       }
     });
 

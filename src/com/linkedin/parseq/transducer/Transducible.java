@@ -1,4 +1,4 @@
-package com.linkedin.parseq.collection;
+package com.linkedin.parseq.transducer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,12 +9,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.collection.sync.RichCallable;
-import com.linkedin.parseq.task.Task;
-import com.linkedin.parseq.transducer.Foldable;
-import com.linkedin.parseq.transducer.Reducer;
+import com.linkedin.parseq.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer.Step;
-import com.linkedin.parseq.transducer.Transducer;
 
 /**
  *
@@ -23,14 +19,14 @@ import com.linkedin.parseq.transducer.Transducer;
  * @param <T>
  * @param <R>
  */
-public abstract class ParSeqCollection<T, R> {
+public abstract class Transducible<T, R> {
   /**
    * This function transforms folding function from the one which folds type R to the one
    * which folds type T.
    */
   protected final Transducer<T, R> _transducer;
 
-  protected ParSeqCollection(Transducer<T, R> transducer) {
+  protected Transducible(Transducer<T, R> transducer) {
     _transducer = transducer;
   }
 
@@ -40,7 +36,11 @@ public abstract class ParSeqCollection<T, R> {
   }
 
   protected <Z, A> Reducer<Z, A> acking(final Reducer<Z, A> reducer) {
-    return (z, ackA) -> { ackA.ack(); return reducer.apply(z, ackA); };
+    //TODO acking twice?
+    // where is it used?
+    // compose acking: reducer might ack it or even finish streaming
+    // handle it gracefully
+    return (z, ackA) -> { ackA.ack(FlowControl.cont); return reducer.apply(z, ackA); };
   }
 
   protected static final <R> R checkEmpty(Optional<R> result) {
@@ -51,24 +51,16 @@ public abstract class ParSeqCollection<T, R> {
     }
   }
 
-  protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
-    return result.map("checkEmpty", ParSeqCollection::checkEmpty);
-  }
-
-  protected static final <R> RichCallable<R> checkEmptySync(RichCallable<Optional<R>> result) {
-    return () -> checkEmpty(result.call());
-  }
-
   /*
    * Collection transformations:
    */
 
-  protected <A, V extends ParSeqCollection<T, A>> V map(final Function<R, A> f,
+  protected <A, V extends Transducible<T, A>> V map(final Function<R, A> f,
       final Function<Transducer<T, A>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.map(ackR -> ackR.map(f)));
   }
 
-  protected <V extends ParSeqCollection<T, R>> V forEach(final Consumer<R> consumer,
+  protected <V extends Transducible<T, R>> V forEach(final Consumer<R> consumer,
       final Function<Transducer<T, R>, V> collectionBuilder) {
     return map(e -> {
       consumer.accept(e);
@@ -76,27 +68,27 @@ public abstract class ParSeqCollection<T, R> {
     }, collectionBuilder);
   }
 
-  protected <V extends ParSeqCollection<T, R>> V filter(final Predicate<R> predicate,
+  protected <V extends Transducible<T, R>> V filter(final Predicate<R> predicate,
       final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.filter(predicate));
   }
 
-  protected <V extends ParSeqCollection<T, R>> V take(final int n,
+  protected <V extends Transducible<T, R>> V take(final int n,
       final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.take(n));
   }
 
-  protected <V extends ParSeqCollection<T, R>> V takeWhile(final Predicate<R> predicate,
+  protected <V extends Transducible<T, R>> V takeWhile(final Predicate<R> predicate,
       final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.takeWhile(predicate));
   }
 
-  protected <V extends ParSeqCollection<T, R>> V drop(final int n,
+  protected <V extends Transducible<T, R>> V drop(final int n,
       final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.drop(n));
   }
 
-  protected <V extends ParSeqCollection<T, R>> V dropWhile(final Predicate<R> predicate,
+  protected <V extends Transducible<T, R>> V dropWhile(final Predicate<R> predicate,
       final Function<Transducer<T, R>, V> collectionBuilder) {
     return collectionBuilder.apply(_transducer.dropWhile(predicate));
   }
@@ -104,6 +96,12 @@ public abstract class ParSeqCollection<T, R> {
   /*
    * Foldings:
    */
+
+  //TODO acking vs notAcking for all operations below
+
+  protected <Z, V> V notAckingFold(final Z zero, final BiFunction<Z, AckValue<R>, Z> op, final Foldable<Z, T, V> foldable) {
+    return foldable.fold(zero, transduce((z, e) -> Step.cont(op.apply(z, e))));
+  }
 
   protected <Z, V> V fold(final Z zero, final BiFunction<Z, R, Z> op, final Foldable<Z, T, V> foldable) {
     return foldable.fold(zero, acking(transduce((z, e) -> Step.cont(op.apply(z, e.get())))));
@@ -152,6 +150,8 @@ public abstract class ParSeqCollection<T, R> {
       }
     })));
   }
+
+  //TODO subscribe based API: e.g. all(Subscriber<T>) and first(Subscriber<T>) both can be called onError()
 
   /**
    * distinct

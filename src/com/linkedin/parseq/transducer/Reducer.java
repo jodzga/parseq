@@ -2,40 +2,35 @@ package com.linkedin.parseq.transducer;
 
 import java.util.function.BiFunction;
 
-import com.linkedin.parseq.internal.stream.AckValue;
+import com.linkedin.parseq.stream.AckValue;
 
 @FunctionalInterface
 public interface Reducer<Z, T> extends BiFunction<Z, AckValue<T>, Reducer.Step<Z>>{
 
   static final class Step<S> {
 
-    public enum Type {
-      cont,  //continue folding
-      done  //finish folding with value calculated so far
-    };
-
     private final S _value;
-    private final Type _type;
+    private final FlowControl _flow;
 
-    private Step(Type type, S value) {
-      _type = type;
+    private Step(FlowControl flow, S value) {
+      _flow = flow;
       _value = value;
     }
 
     public static <S> Step<S> cont(S value) {
-      return new Step<S>(Type.cont, value);
+      return new Step<S>(FlowControl.cont, value);
     }
 
     public static <S> Step<S> done(S value) {
-      return new Step<S>(Type.done, value);
+      return new Step<S>(FlowControl.done, value);
     }
 
     public S getValue() {
       return _value;
     }
 
-    public Type getType() {
-      return _type;
+    public FlowControl getType() {
+      return _flow;
     }
   }
 

@@ -20,13 +20,16 @@ import static com.linkedin.parseq.function.Tuples.tuple;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 
+import com.linkedin.parseq.function.Function3;
 import com.linkedin.parseq.function.Tuple2;
 import com.linkedin.parseq.internal.InternalUtil;
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import com.sun.org.apache.xpath.internal.functions.Function2Args;
 
 public class Par2Task<T1, T2> extends SystemHiddenTask<Tuple2<T1, T2>>
 {
@@ -63,4 +66,9 @@ public class Par2Task<T1, T2> extends SystemHiddenTask<Tuple2<T1, T2>>
 
     return result;
   }
+
+  public <R> Task<R> map(final BiFunction<T1, T2, R> f) {
+    return map(tuple -> f.apply(tuple._1(), tuple._2()));
+  }
+
 }

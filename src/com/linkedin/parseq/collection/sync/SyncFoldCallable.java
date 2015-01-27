@@ -1,7 +1,7 @@
 package com.linkedin.parseq.collection.sync;
 
-import com.linkedin.parseq.internal.stream.Ack;
-import com.linkedin.parseq.internal.stream.AckValue;
+import com.linkedin.parseq.stream.Ack;
+import com.linkedin.parseq.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 
@@ -13,7 +13,6 @@ public class SyncFoldCallable<B, T> implements RichCallable<B> {
   protected Iterable<T> _values;
   private B _partialResult;
   private final Reducer<B, T> _reducer;
-
 
   public SyncFoldCallable(final Iterable<T> values, final B zero,
       final Reducer<B, T> reducer) {

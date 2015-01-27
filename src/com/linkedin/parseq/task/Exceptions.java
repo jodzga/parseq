@@ -20,4 +20,16 @@ public class Exceptions {
     }
     return e;
   }
+
+  public static Exception noSuchElement() {
+    return NO_SUCH_ELEMENT_EXCEPTION;
+  }
+
+  private static Exception addCause(Exception e, Throwable cause) {
+    return (Exception)e.initCause(cause);
+  }
+
+  public static Exception noSuchElement(final Throwable cause) {
+    return addCause(new NoSuchElementException(), cause);
+  }
 }

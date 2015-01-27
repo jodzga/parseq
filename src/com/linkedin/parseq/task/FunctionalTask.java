@@ -16,6 +16,7 @@ import com.linkedin.parseq.promise.SettablePromise;
  * side effect free. In this case we don't need to schedule new task
  * on engine to execute it.
  *
+ * TODO define how cancellation is supposed to work with FunctionalTask
  *
  * @author jodzga
  *

@@ -18,7 +18,7 @@ package com.linkedin.parseq.collection.async;
 
 import java.util.Optional;
 
-import com.linkedin.parseq.internal.stream.Publisher;
+import com.linkedin.parseq.stream.StreamCollection;
 import com.linkedin.parseq.task.Context;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Reducer;
@@ -28,7 +28,7 @@ import com.linkedin.parseq.transducer.Reducer;
  */
 public class ParFoldTask<B, T> extends BaseFoldTask<B, T>
 {
-  public ParFoldTask(String name, Publisher<Task<T>> tasks, B zero, Reducer<B, T> reducer,
+  public ParFoldTask(String name, StreamCollection<?, Task<T>> tasks, B zero, Reducer<B, T> reducer,
       Optional<Task<?>> predecessor) {
     super(name, tasks, zero, reducer, predecessor);
   }

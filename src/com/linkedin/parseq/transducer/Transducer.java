@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.internal.stream.AckValue;
+import com.linkedin.parseq.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.util.Integers;
 
@@ -31,7 +31,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
       if (predicate.test(r.get())) {
         return fr.apply(z, r);
       } else {
-        r.ack();
+        r.ack(FlowControl.cont);
         return Step.cont(z);
       }
     });
@@ -52,7 +52,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
     Integers.requireNonNegative(n);
     if (n == 0) {
       return fr -> this.apply((z, r) -> {
-          r.ack();
+          r.ack(FlowControl.done);
           return Step.done(z);
       });
     }
@@ -74,7 +74,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
     final Counter counter = new Counter(0);
     return fr -> this.apply((z, r) -> {
       if (counter.inc() < n) {
-        r.ack();
+        r.ack(FlowControl.cont);
         return Step.cont(z);
       } else {
         return fr.apply(z, r);
@@ -87,7 +87,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
       if (predicate.test(r.get())) {
         return fr.apply(z, r);
       } else {
-        r.ack();
+        r.ack(FlowControl.done);
         return Step.done(z);
       }
     });
@@ -109,7 +109,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
       if (!trap.closed())
       {
         if (predicate.test(r.get())) {
-          r.ack();
+          r.ack(FlowControl.cont);
           return Step.cont(z);
         } else {
          trap.trigger();
