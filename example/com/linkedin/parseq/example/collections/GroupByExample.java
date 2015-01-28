@@ -30,15 +30,12 @@ public class GroupByExample extends AbstractExample
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com",
         "http://www.linkedin.com", "http://www.google.com", "http://www.linkedin.com");
 
-    Task<String> result =
-        Collections.fromIterable(urls)
-          .par(url -> fetchUrl(httpClient, url))
-          .groupBy(i -> i)
-          .mapTask(group ->
-                    (Task<String>)group._2()
-                      .count()
-                      .map(cnt -> "group: " + group._1() + ", count: " + cnt))
-          .reduce((a, b) -> a + "\n" + b );
+    Task<String> result = null;
+//        Collections.fromIterable(urls)
+//          .par(url -> fetchUrl(httpClient, url))
+//          .groupBy(i -> i)
+//          .map(group -> "group: " + group.getKey() + ", count: " + group.count())
+//          .reduce((a, b) -> a + "\n" + b );
 
     engine.run(result);
 

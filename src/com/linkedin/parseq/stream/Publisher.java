@@ -1,5 +1,7 @@
 package com.linkedin.parseq.stream;
 
+import com.linkedin.parseq.transducer.Transducer;
+
 public interface Publisher<T> {
 
   void subscribe(AckingSubscriber<T> subscriber);
@@ -9,6 +11,6 @@ public interface Publisher<T> {
   }
 
   default StreamCollection<T, T> collection() {
-    return new StreamCollection<T, T>(this, x -> x);
+    return new StreamCollection<T, T>(this, Transducer.identity());
   }
 }

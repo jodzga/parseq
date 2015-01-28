@@ -22,14 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import com.linkedin.parseq.function.Function3;
 import com.linkedin.parseq.function.Tuple2;
 import com.linkedin.parseq.internal.InternalUtil;
 import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.sun.org.apache.xpath.internal.functions.Function2Args;
 
 public class Par2Task<T1, T2> extends SystemHiddenTask<Tuple2<T1, T2>>
 {
@@ -60,7 +58,9 @@ public class Par2Task<T1, T2> extends SystemHiddenTask<Tuple2<T1, T2>>
         result.done(tuple(_tasks._1().get(),
                           _tasks._2().get()));
       }
-    }, _tasks._1(), _tasks._2());
+    },
+    _tasks._1(),
+    _tasks._2());
 
     _tasks.forEach(t -> context.run((Task<?>)t));
 

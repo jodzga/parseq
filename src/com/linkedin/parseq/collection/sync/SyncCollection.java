@@ -19,6 +19,7 @@ import com.linkedin.parseq.collection.async.ParCollection;
 import com.linkedin.parseq.collection.async.SeqCollection;
 import com.linkedin.parseq.function.Tuple2;
 import com.linkedin.parseq.stream.PushablePublisher;
+import com.linkedin.parseq.stream.CancellableSubscription;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.Tasks;
 import com.linkedin.parseq.transducer.Foldable;
@@ -117,10 +118,15 @@ public class SyncCollection<T, R> extends Transducible<T, R> {
    * FlatMaps:
    */
 
-  private Task<?> publisherTask(final PushablePublisher<R> pushable) {
+  private Task<?> publisherTask(final PushablePublisher<R> pushable, final CancellableSubscription subscription) {
     final Task<?> fold = Tasks.callable("SyncCollectionPublisher", foldable().fold(Optional.empty(), transduce((z, ackR) -> {
-      pushable.next(ackR);
-      return Step.cont(z);
+      //TODO verify that cancellation semantics is consistent across all collection types and operations
+      if (subscription.isCancelled()) {
+        return Step.done(z);
+      } else {
+        pushable.next(ackR);
+        return Step.cont(z);
+      }
     })));
     fold.onResolve(p -> {
       //this is executed in correct thread because it is sync collection
@@ -134,14 +140,16 @@ public class SyncCollection<T, R> extends Transducible<T, R> {
   }
 
   public <A> ParCollection<A, A> par(final Function<R, Task<A>> f) {
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
-    Task<?> publisherTask = publisherTask(pushablePublisher);
+    CancellableSubscription subscription = new CancellableSubscription();
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
     return new ParCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
   }
 
   public <A> SeqCollection<A, A> seq(final Function<R, Task<A>> f) {
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
-    Task<?> publisherTask = publisherTask(pushablePublisher);
+    CancellableSubscription subscription = new CancellableSubscription();
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
     return new SeqCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
   }
 

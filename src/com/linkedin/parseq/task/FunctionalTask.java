@@ -71,6 +71,8 @@ public class FunctionalTask<S, T>  extends SystemHiddenTask<T> {
     });
   }
 
+  //TODO implement other functions
+
   @Override
   protected Promise<? extends T> run(Context context) throws Throwable {
     final SettablePromise<T> result = Promises.settable();

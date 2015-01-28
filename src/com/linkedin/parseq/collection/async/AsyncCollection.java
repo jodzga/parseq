@@ -8,6 +8,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.linkedin.parseq.function.Tuple2;
+import com.linkedin.parseq.stream.CancellableSubscription;
+import com.linkedin.parseq.stream.GroupedStreamCollection;
 import com.linkedin.parseq.stream.StreamCollection;
 import com.linkedin.parseq.stream.PushablePublisher;
 import com.linkedin.parseq.task.Task;
@@ -109,6 +111,7 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
     return all().map(r -> r.size());
   }
 
+  //Used only for side-effects
   public Task<?> task() {
     return foldable().fold(Optional.empty(), acking(transduce((z, r) -> {
       return Step.cont(z);
@@ -119,10 +122,15 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
    * FlatMaps:
    */
 
-  private Task<?> publisherTask(final PushablePublisher<R> pushable) {
+  private Task<?> publisherTask(final PushablePublisher<R> pushable, final CancellableSubscription subscription) {
     final Task<?> fold = foldable().fold(Optional.empty(), transduce((z, ackR) -> {
-      pushable.next(ackR);
-      return Step.cont(z);
+      //TODO verify that cancellation semantics is consistent across all collection types and operations
+      if (subscription.isCancelled()) {
+        return Step.done(z);
+      } else {
+        pushable.next(ackR);
+        return Step.cont(z);
+      }
     }));
     fold.onResolve(p -> {
       if (p.isFailed()) {
@@ -135,20 +143,21 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
   }
 
   public <A> AsyncCollection<A, A> mapTask(final Function<R, Task<A>> f) {
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
-    Task<?> publisherTask = publisherTask(pushablePublisher);
+    CancellableSubscription subscription = new CancellableSubscription();
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
     return createAsyncCollection(pushablePublisher.collection().map(f), Transducer.identity(), Optional.of(publisherTask));
   }
 
   public <A> AsyncCollection<A, A> flatMap(final Function<R, AsyncCollection<A, A>> f) {
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>();
-    Task<?> publisherTask = publisherTask(pushablePublisher);
+    CancellableSubscription subscription = new CancellableSubscription();
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
     Function<R, StreamCollection<?, Task<A>>> mapper = r -> f.apply(r)._input;
     return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
   }
 
-  public <A> AsyncCollection<Tuple2<A, AsyncCollection<R, R>>, Tuple2<A, AsyncCollection<R, R>>> groupBy(final Function<R, A> classifier) {
-
+  public <A> AsyncCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
     return null;
   }
 

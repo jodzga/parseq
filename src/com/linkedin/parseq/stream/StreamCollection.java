@@ -2,10 +2,12 @@ package com.linkedin.parseq.stream;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -18,16 +20,14 @@ import com.linkedin.parseq.promise.SettablePromise;
 import com.linkedin.parseq.task.Exceptions;
 import com.linkedin.parseq.transducer.FlowControl;
 import com.linkedin.parseq.transducer.Foldable;
-import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Transducer;
 import com.linkedin.parseq.transducer.Transducible;
-import com.linkedin.parseq.transducer.Reducer.Step;
 
-
+import static com.linkedin.parseq.function.Tuples.*;
 
 public class StreamCollection<T, R> extends Transducible<T, R> implements Publisher<R>{
 
-  private final Publisher<T> _source;
+  protected final Publisher<T> _source;
 
   public StreamCollection(Publisher<T> source, Transducer<T, R> transducer) {
     super(transducer);
@@ -42,7 +42,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements Publis
     return new StreamCollection<A, B>(source, transducer);
   }
 
-  protected <B> StreamCollection<T, B> create(Transducer<T, B> transducer) {
+  private <B> StreamCollection<T, B> create(Transducer<T, B> transducer) {
     return createStreamCollection(_source, transducer);
   }
 
@@ -139,53 +139,77 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements Publis
   }
 
 
-  public <R> StreamCollection<?, Tuple2<R, StreamCollection<?, T>>> groupBy(final Function<T, R> classifier) {
-//    final Publisher<T> that = this;
-//    return new Publisher<Tuple2<R, Publisher<T>>>() {
-//      private int groupCount = 0;
-//
-//      @Override
-//      public void subscribe(final AckingSubscriber<Tuple2<R, Publisher<T>>> subscriber) {
-//
-//        final Map<R, PushablePublisher<T>> publishers = new HashMap<R, PushablePublisher<T>>();
-//
-//        that.subscribe(new AckingSubscriber<T>() {
-//
-//          @Override
-//          public void onNext(final AckValue<T> element) {
-//            //TODO add try/catch to all those methods
-//            final R group = classifier.apply(element.get());
-//            PushablePublisher<T> pub = publishers.get(group);
-//            if (pub == null) {
-//              pub = new PushablePublisher<T>();
-//              publishers.put(group, pub);
-//              subscriber.onNext(new AckValue<>(tuple(group, pub), Ack.NO_OP));
-//              groupCount++;
-//            }
-//            pub.next(element);
-//          }
-//
-//          @Override
-//          public void onComplete(final int totalTasks) {
-//            subscriber.onComplete(groupCount);
-//            for (PushablePublisher<T> pub: publishers.values()) {
-//              pub.complete();
-//            }
-//          }
-//
-//          @Override
-//          public void onError(Throwable cause) {
-//            subscriber.onError(cause);
-//            for (PushablePublisher<T> pub: publishers.values()) {
-//              pub.error(cause);
-//            }
-//          }
-//
-//        });
-//      }
-//
-//    };
-    return null;
+  public <A> StreamCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
+    final Publisher<R> that = this;
+    return new Publisher<GroupedStreamCollection<A, R, R>>() {
+      private int groupCount = 0;
+
+      @Override
+      public void subscribe(final AckingSubscriber<GroupedStreamCollection<A, R, R>> subscriber) {
+
+        final Map<A, PushablePublisher<R>> publishers = new HashMap<A, PushablePublisher<R>>();
+        final Set<A> calcelledGroups = new HashSet<A>();
+
+        that.subscribe(new AckingSubscriber<R>() {
+
+          @Override
+          public void onNext(final AckValue<R> element) {
+            /**
+             * TODO
+             * Update documentation about ack: it is not a mechanism for backpressure:
+             * - is backpressure relevant problem for a processing finite streams?
+             * - ack is used to provide Seq semantics
+             *
+             * add try/catch to all those methods
+             */
+            final A group = classifier.apply(element.get());
+            if (calcelledGroups.contains(group)) {
+              element.ack(FlowControl.cont);
+            } else {
+              PushablePublisher<R> pub = publishers.get(group);
+              if (pub == null) {
+                final CancellableSubscription subscription = new CancellableSubscription();
+                pub = new PushablePublisher<R>(() -> {
+                  subscription.cancel();
+                  calcelledGroups.add(group);
+                });
+                publishers.put(group, pub);
+                subscriber.onNext(new AckValue<>(new GroupedStreamCollection<A, R, R>(group, pub, Transducer.identity()), Ack.NO_OP));
+                groupCount++;
+              }
+              //at this point subscription might have been already cancelled
+              if (!calcelledGroups.contains(group)) {
+                pub.next(element);
+              }
+            }
+          }
+
+          @Override
+          public void onComplete(final int totalTasks) {
+            subscriber.onComplete(groupCount);
+            for (PushablePublisher<R> pub: publishers.values()) {
+              pub.complete();
+            }
+          }
+
+          @Override
+          public void onError(Throwable cause) {
+            subscriber.onError(cause);
+            for (PushablePublisher<R> pub: publishers.values()) {
+              pub.error(cause);
+            }
+          }
+
+          @Override
+          public void onSubscribe(Subscription subscription) {
+            //we would be able to cancel stream if all groups cancelled their streams
+            //unfortunately we can't cancel stream because we don't know
+            //what elements are coming in the stream so we don't know list of all groups
+          }
+
+        });
+      }
+    }.collection();
   }
 
   public <A> StreamCollection<?, A> flatMap(final Function<R, StreamCollection<?, A>> f) {
