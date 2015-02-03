@@ -7,7 +7,7 @@ import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Foldable;
 import com.linkedin.parseq.transducer.Transducer;
 
-public class SeqCollection<T, R> extends AsyncCollection<T, R> {
+public class SeqCollection<T, R> extends AsyncCollectionImpl<T, R> {
 
   public SeqCollection(Transducer<T, R> transducer, StreamCollection<?, Task<T>> input, Optional<Task<?>> predecessor) {
     super(transducer, input, predecessor);

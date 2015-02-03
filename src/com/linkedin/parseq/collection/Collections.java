@@ -23,7 +23,7 @@ public class Collections {
     return new ParCollection<T, T>(Transducer.identity(), new IterablePublisher<>(tasks).collection(), Optional.empty());
   }
 
-  public static <T> SyncCollection<T, T> fromIterable(final Iterable<T> input)
+  public static <T> ParSeqCollection<T> fromIterable(final Iterable<T> input)
   {
     return new SyncCollection<T, T>(Transducer.identity(), input);
   }

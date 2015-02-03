@@ -7,16 +7,17 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.function.Tuple2;
+import com.linkedin.parseq.collection.GroupedAsyncCollection;
+import com.linkedin.parseq.collection.ParSeqCollection;
 import com.linkedin.parseq.stream.CancellableSubscription;
 import com.linkedin.parseq.stream.GroupedStreamCollection;
-import com.linkedin.parseq.stream.StreamCollection;
 import com.linkedin.parseq.stream.PushablePublisher;
+import com.linkedin.parseq.stream.StreamCollection;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.transducer.Foldable;
-import com.linkedin.parseq.transducer.Transducible;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
+import com.linkedin.parseq.transducer.Transducible;
 
 /**
  * TODO EARLY_FINISH
@@ -26,12 +27,12 @@ import com.linkedin.parseq.transducer.Transducer;
  * @param <T>
  * @param <R>
  */
-public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
+public abstract class AsyncCollectionImpl<T, R> extends Transducible<T, R> implements ParSeqCollection<R> {
 
   protected final StreamCollection<?, Task<T>> _input;
   protected final Optional<Task<?>> _predecessor;
 
-  public AsyncCollection(Transducer<T, R> transducer, StreamCollection<?, Task<T>> input, Optional<Task<?>> predecessor) {
+  public AsyncCollectionImpl(Transducer<T, R> transducer, StreamCollection<?, Task<T>> input, Optional<Task<?>> predecessor) {
     super(transducer);
     _input = input;
     _predecessor = predecessor;
@@ -39,7 +40,7 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
 
   protected abstract <Z> Foldable<Z, T, Task<Z>> foldable();
 
-  abstract <A, B> AsyncCollection<A, B> createAsyncCollection(final StreamCollection<?, Task<A>> input,
+  abstract <A, B> AsyncCollectionImpl<A, B> createAsyncCollection(final StreamCollection<?, Task<A>> input,
       Transducer<A, B> transducer,
       Optional<Task<?>> predecessor);
 
@@ -47,35 +48,35 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
    * Collection transformations:
    */
 
-  protected <B> AsyncCollection<T, B> create(Transducer<T, B> transducer) {
+  protected <B> AsyncCollectionImpl<T, B> create(Transducer<T, B> transducer) {
     return createAsyncCollection(_input, transducer, _predecessor);
   }
 
-  public <A> AsyncCollection<T, A> map(final Function<R, A> f) {
+  public <A> AsyncCollectionImpl<T, A> map(final Function<R, A> f) {
     return map(f, this::create);
   }
 
-  public AsyncCollection<T, R> forEach(final Consumer<R> consumer) {
+  public AsyncCollectionImpl<T, R> forEach(final Consumer<R> consumer) {
     return forEach(consumer, this::create);
   }
 
-  public AsyncCollection<T, R> filter(final Predicate<R> predicate) {
+  public AsyncCollectionImpl<T, R> filter(final Predicate<R> predicate) {
     return filter(predicate, this::create);
   }
 
-  public AsyncCollection<T, R> take(final int n) {
+  public AsyncCollectionImpl<T, R> take(final int n) {
     return take(n, this::create);
   }
 
-  public AsyncCollection<T, R> takeWhile(final Predicate<R> predicate) {
+  public AsyncCollectionImpl<T, R> takeWhile(final Predicate<R> predicate) {
     return takeWhile(predicate, this::create);
   }
 
-  public AsyncCollection<T, R> drop(final int n) {
+  public AsyncCollectionImpl<T, R> drop(final int n) {
     return drop(n, this::create);
   }
 
-  public AsyncCollection<T, R> dropWhile(final Predicate<R> predicate) {
+  public AsyncCollectionImpl<T, R> dropWhile(final Predicate<R> predicate) {
     return dropWhile(predicate, this::create);
   }
 
@@ -142,14 +143,14 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
     return fold;
   }
 
-  public <A> AsyncCollection<A, A> mapTask(final Function<R, Task<A>> f) {
+  public <A> AsyncCollectionImpl<A, A> mapTask(final Function<R, Task<A>> f) {
     CancellableSubscription subscription = new CancellableSubscription();
     PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
     Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
     return createAsyncCollection(pushablePublisher.collection().map(f), Transducer.identity(), Optional.of(publisherTask));
   }
 
-  public <A> AsyncCollection<A, A> flatMap(final Function<R, AsyncCollection<A, A>> f) {
+  private <A> AsyncCollectionImpl<A, A> flatMapAsync(final Function<R, AsyncCollectionImpl<A, A>> f) {
     CancellableSubscription subscription = new CancellableSubscription();
     PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
     Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
@@ -157,7 +158,43 @@ public abstract class AsyncCollection<T, R> extends Transducible<T, R> {
     return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
   }
 
-  public <A> AsyncCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
+//  public <A> AsyncCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
+//    return null;
+//  }
+
+
+  @Override
+  public ParSeqCollection<R> withSideEffect(Consumer<R> consumer) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ParSeqCollection<R> toSeq() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  private <A> StreamCollection<?, Task<A>> flatMapper(ParSeqCollection<A> collection) {
+    if (collection instanceof AsyncCollectionImpl) {
+      return ((AsyncCollectionImpl)collection)._input;
+    }
+    throw new UnsupportedOperationException("Unrecognized ParSeqCollection type:");
+  }
+
+  @Override
+  public <A> ParSeqCollection<A> flatMap(Function<R, ParSeqCollection<A>> f) {
+    CancellableSubscription subscription = new CancellableSubscription();
+    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
+    Function<R, StreamCollection<?, Task<A>>> mapper = r -> flatMapper(f.apply(r));
+    return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
+  }
+
+  @Override
+  public <K> ParSeqCollection<GroupedAsyncCollection<K, R>> groupBy(Function<R, K> classifier) {
+    // TODO Auto-generated method stub
     return null;
   }
 

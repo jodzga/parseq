@@ -4,9 +4,12 @@ package com.linkedin.parseq.example.collections;
 import java.util.Arrays;
 import java.util.List;
 
+import javafx.scene.Group;
+
 import com.linkedin.parseq.collection.Collections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
+import com.linkedin.parseq.task.Task;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
@@ -23,13 +26,14 @@ public class SyncGroupByExample extends AbstractExample
   {
     List<Integer> ints = Arrays.asList(1, 2, 3, 4, 5, 6, 2, 3, 5, 3);
 
-    String result =
+    Task<String> task =
         Collections.fromIterable(ints)
         .groupBy(i -> i)
-        .map(group -> "group: " + group._1() + ", count: " + group._2().count().call())
-        .reduce((a, b) -> a + "\n" + b )
-        .call();
+        .mapTask(group ->
+            (Task<String>)group.count().map(count ->
+              "group: " + group.getKey() + ", count: " + count))
+        .reduce((a, b) -> a + "\n" + b );
 
-    System.out.println(result);
+    System.out.println(task);
   }
 }

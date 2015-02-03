@@ -52,7 +52,7 @@ public class FixedTimeBoundSearchExample extends AbstractExample
     AtomicInteger idx = new AtomicInteger();
     Task<List<Integer>> example =
         Collections.fromIterable(REQUEST_LATENCIES)
-          .par(requestLatency -> callService("subSearch[" + idx.get() + "]",
+          .mapTask(requestLatency -> callService("subSearch[" + idx.get() + "]",
                                       service,
                                       new SimpleMockRequest<Integer>(requestLatency, idx.getAndIncrement())))
           .all()
