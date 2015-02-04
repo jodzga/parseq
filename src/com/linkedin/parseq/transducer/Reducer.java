@@ -2,10 +2,10 @@ package com.linkedin.parseq.transducer;
 
 import java.util.function.BiFunction;
 
-import com.linkedin.parseq.stream.AckValue;
+import com.linkedin.parseq.task.TaskOrValue;
 
 @FunctionalInterface
-public interface Reducer<Z, T> extends BiFunction<Z, AckValue<T>, Reducer.Step<Z>>{
+public interface Reducer<Z, T> extends BiFunction<TaskOrValue<Z>, TaskOrValue<T>, TaskOrValue<Reducer.Step<Z>>>{
 
   static final class Step<S> {
 

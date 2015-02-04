@@ -5,13 +5,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.linkedin.parseq.stream.AckValue;
+import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.util.Integers;
 
 @FunctionalInterface
 public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<Object, T>> {
 
-  default <A> Transducer<T, A> map(final Function<AckValue<R>, AckValue<A>> f) {
+  default <A> Transducer<T, A> map(final Function<TaskOrValue<R>, TaskOrValue<A>> f) {
     return fa -> apply((z, r) -> fa.apply(z, f.apply(r)));
   }
 
