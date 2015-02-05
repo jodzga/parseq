@@ -437,7 +437,7 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
     }
 
     @Override
-    public void runSubTask(Task<?> task, Task<Object> rootTask) {
+    public void runSubTask(Task<?> task, Task<?> rootTask) {
       _context.runSubTask(task, rootTask);
       _relationshipBuilder.addRelationship(Relationship.POTENTIAL_PARENT_OF, task);
     }

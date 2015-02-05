@@ -56,7 +56,7 @@ public interface Context
    * @param task
    * @param rootTask
    */
-  void runSubTask(Task<?> task, Task<Object> rootTask);
+  void runSubTask(Task<?> task, Task<?> rootTask);
 
   /**
    * Provides a mechanism of ordering the execution of some child tasks after

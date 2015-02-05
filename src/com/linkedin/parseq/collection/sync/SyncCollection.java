@@ -136,39 +136,41 @@ public class SyncCollection<T, R> extends Transducible<T, R> implements ParSeqCo
    * FlatMaps:
    */
 
-  private Task<?> publisherTask(final PushablePublisher<R> pushable, final CancellableSubscription subscription) {
-    final Task<?> fold = Tasks.callable("SyncCollectionPublisher", foldable().fold(Optional.empty(), transduce((z, ackR) -> {
-      //TODO verify that cancellation semantics is consistent across all collection types and operations
-      if (subscription.isCancelled()) {
-        return Step.done(z);
-      } else {
-        pushable.next(ackR);
-        return Step.cont(z);
-      }
-    })));
-    fold.onResolve(p -> {
-      //this is executed in correct thread because it is sync collection
-      if (p.isFailed()) {
-        pushable.error(p.getError());
-      } else {
-        pushable.complete();
-      }
-    });
-    return fold;
-  }
+//  private Task<?> publisherTask(final PushablePublisher<R> pushable, final CancellableSubscription subscription) {
+//    final Task<?> fold = Tasks.callable("SyncCollectionPublisher", foldable().fold(Optional.empty(), transduce((z, ackR) -> {
+//      //TODO verify that cancellation semantics is consistent across all collection types and operations
+//      if (subscription.isCancelled()) {
+//        return Step.done(z);
+//      } else {
+//        pushable.next(ackR);
+//        return Step.cont(z);
+//      }
+//    })));
+//    fold.onResolve(p -> {
+//      //this is executed in correct thread because it is sync collection
+//      if (p.isFailed()) {
+//        pushable.error(p.getError());
+//      } else {
+//        pushable.complete();
+//      }
+//    });
+//    return fold;
+//  }
 
   public <A> ParCollection<A, A> par(final Function<R, Task<A>> f) {
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
-    return new ParCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
+//    CancellableSubscription subscription = new CancellableSubscription();
+//    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+//    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
+//    return new ParCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
+    return null;
   }
 
   public <A> SeqCollection<A, A> seq(final Function<R, Task<A>> f) {
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
-    return new SeqCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
+//    CancellableSubscription subscription = new CancellableSubscription();
+//    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+//    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
+//    return new SeqCollection<A, A>(Transducer.identity(), pushablePublisher.collection().map(f), Optional.of(publisherTask));
+    return null;
   }
 
   @Override

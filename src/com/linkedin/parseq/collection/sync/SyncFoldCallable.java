@@ -1,7 +1,5 @@
 package com.linkedin.parseq.collection.sync;
 
-import com.linkedin.parseq.stream.Ack;
-import com.linkedin.parseq.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 
@@ -23,16 +21,16 @@ public class SyncFoldCallable<B, T> implements RichCallable<B> {
 
   @Override
   public B call() {
-    for (T value: _values) {
-      Step<B> step = _reducer.apply(_partialResult, new AckValue<T>(value, Ack.NO_OP));
-      switch (step.getType()) {
-        case cont:
-          _partialResult = step.getValue();
-          break;
-        case done:
-          return step.getValue();
-      }
-    }
+//    for (T value: _values) {
+//      Step<B> step = _reducer.apply(_partialResult, new AckValue<T>(value, Ack.NO_OP));
+//      switch (step.getType()) {
+//        case cont:
+//          _partialResult = step.getValue();
+//          break;
+//        case done:
+//          return step.getValue();
+//      }
+//    }
     return _partialResult;
   }
 

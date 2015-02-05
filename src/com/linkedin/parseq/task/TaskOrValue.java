@@ -46,9 +46,9 @@ public class TaskOrValue<T> {
     }
   }
 
-  public static <T> TaskOrValue<T> task(Task<T> task) {
+  public static <A> TaskOrValue<A> task(Task<A> task) {
     Objects.requireNonNull(task);
-    return new TaskOrValue<T>(task, null);
+    return new TaskOrValue<A>(task, null);
   }
 
   public static <T> TaskOrValue<T> value(T value) {

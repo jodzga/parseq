@@ -9,10 +9,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.stream.AckValue;
 import com.linkedin.parseq.transducer.Reducer.Step;
 
 /**
+ * TODO merge this back to the single implementation
  *
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  *
@@ -35,14 +35,6 @@ public abstract class Transducible<T, R> {
     return (Reducer<Z, T>)_transducer.apply((Reducer<Object, R>)reducer);
   }
 
-  protected <Z, A> Reducer<Z, A> acking(final Reducer<Z, A> reducer) {
-    //TODO acking twice?
-    // where is it used?
-    // compose acking: reducer might ack it or even finish streaming
-    // handle it gracefully
-    return (z, ackA) -> { ackA.ack(FlowControl.cont); return reducer.apply(z, ackA); };
-  }
-
   protected static final <R> R checkEmpty(Optional<R> result) {
     if (result.isPresent()) {
       return result.get();
@@ -57,7 +49,7 @@ public abstract class Transducible<T, R> {
 
   protected <A, V extends Transducible<T, A>> V map(final Function<R, A> f,
       final Function<Transducer<T, A>, V> collectionBuilder) {
-    return collectionBuilder.apply(_transducer.map(ackR -> ackR.map(f)));
+    return collectionBuilder.apply(_transducer.map(r -> r.map(f)));
   }
 
   protected <V extends Transducible<T, R>> V forEach(final Consumer<R> consumer,
@@ -97,27 +89,21 @@ public abstract class Transducible<T, R> {
    * Foldings:
    */
 
-  //TODO acking vs notAcking for all operations below
-
-  protected <Z, V> V notAckingFold(final Z zero, final BiFunction<Z, AckValue<R>, Z> op, final Foldable<Z, T, V> foldable) {
-    return foldable.fold(zero, transduce((z, e) -> Step.cont(op.apply(z, e))));
-  }
-
   protected <Z, V> V fold(final Z zero, final BiFunction<Z, R, Z> op, final Foldable<Z, T, V> foldable) {
-    return foldable.fold(zero, acking(transduce((z, e) -> Step.cont(op.apply(z, e.get())))));
+    return foldable.fold(zero, transduce((z, e) -> e.map(eValue -> Step.cont(op.apply(z, eValue)))));
   }
 
   protected <V> V first(final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), acking(transduce((z, r) -> Step.done(Optional.of(r.get())))));
+    return foldable.fold(Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.done(Optional.of(rValue)))));
   }
 
   protected <V> V last(final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), acking(transduce((z, r) -> Step.cont(Optional.of(r.get())))));
+    return foldable.fold(Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.cont(Optional.of(rValue)))));
   }
 
   protected <V> V all(final Foldable<List<R>, T, V> foldable) {
-    return foldable.fold(new ArrayList<R>(), acking(transduce((z, r) -> {
-      z.add(r.get());
+    return foldable.fold(new ArrayList<R>(), transduce((z, r) -> r.map(rValue -> {
+      z.add(rValue);
       return Step.cont(z);
     })));
   }
@@ -131,20 +117,20 @@ public abstract class Transducible<T, R> {
 
   protected <V> V reduce(final BiFunction<R, R, R> op, final Foldable<Optional<R>, T, V> foldable) {
     final BooleanHolder first = new BooleanHolder(true);
-    return foldable.fold(Optional.empty(), acking(transduce((z, e) -> {
+    return foldable.fold(Optional.empty(), transduce((z, e) -> e.map(eValue -> {
       if (first._value) {
         first._value = false;
-        return Step.cont(Optional.of(e.get()));
+        return Step.cont(Optional.of(eValue));
       } else {
-        return Step.cont(Optional.of(op.apply(z.get(), e.get())));
+        return Step.cont(Optional.of(op.apply(z.get(), eValue)));
       }
     })));
   }
 
   protected <V> V find(final Predicate<R> predicate, final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), acking(transduce((z, e) -> {
-      if (predicate.test(e.get())) {
-        return Step.done(Optional.of(e.get()));
+    return foldable.fold(Optional.empty(), transduce((z, e) -> e.map(eValue -> {
+      if (predicate.test(eValue)) {
+        return Step.done(Optional.of(eValue));
       } else {
         return Step.cont(z);
       }

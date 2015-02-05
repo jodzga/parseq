@@ -106,12 +106,6 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
     return all().map(r -> r.size());
   }
 
-  //Used only for side-effects
-  public Task<?> task() {
-    return foldable().fold(Optional.empty(), acking(transduce((z, r) -> {
-      return Step.cont(z);
-    })));
-  }
 
   @Override
   public <A> AsyncCollection<A, A> mapTask(final Function<R, Task<A>> f) {

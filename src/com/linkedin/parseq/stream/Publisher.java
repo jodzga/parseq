@@ -6,63 +6,51 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.function.Function;
 
-import com.linkedin.parseq.transducer.FlowControl;
-
 
 public interface Publisher<T> {
 
-  void subscribe(AckingSubscriber<T> subscriber);
+  void subscribe(Subscriber<? super T> subscriber);
 
-  default void subscribe(Subscriber<T> subscriber) {
-    subscribe(AckingSubscriber.adopt(subscriber));
+  public static <A> Publisher<A> flatten(Publisher<? extends Publisher<? extends A>> publisher) {
+    return publisher.flatMap(p -> p);
   }
 
-  default <A> Publisher<A> flatMap(Function<T, Publisher<A>> f) {
+  default <A> Publisher<A> flatMap(Function<? super T, ? extends Publisher<? extends A>> f) {
       final Publisher<T> that = this;
       return new Publisher<A>() {
-        private AckingSubscriber<A> _subscriberOfFlatMappedA = null;
-        private final Queue<Publisher<A>> _publishers = new ArrayDeque<Publisher<A>>();
-        private final Map<Publisher<A>, Subscription> _subscriptions = new HashMap<Publisher<A>, Subscription>();
+        private Subscriber<? super A> _subscriberOfFlatMappedA = null;
+        private final Queue<Publisher<? extends A>> _publishers = new ArrayDeque<Publisher<? extends A>>();
+        private final Map<Publisher<? extends A>, Subscription> _subscriptions = new HashMap<Publisher<? extends A>, Subscription>();
         boolean _sourceDone = false;
-        int _count = 0;
 
         @Override
-        public void subscribe(final AckingSubscriber<A> subscriberOfFlatMappedA) {
+        public void subscribe(final Subscriber<? super A> subscriberOfFlatMappedA) {
           _subscriberOfFlatMappedA = subscriberOfFlatMappedA;
-          that.subscribe(new AckingSubscriber<T>() {
+          that.subscribe(new Subscriber<T>() {
 
             /**
              * Subscribe to received publishers
              */
-            private void subscribe(final Publisher<A> publisher, final Ack ack) {
-              publisher.subscribe(new AckingSubscriber<A>() {
+            private void subscribe(final Publisher<? extends A> publisher) {
+              publisher.subscribe(new Subscriber<A>() {
 
                 @Override
-                public void onComplete(int totalTasks) {
-                  try {
-                    _count += totalTasks;
-                    if (_sourceDone) {
-                      _publishers.clear();
-                      _subscriptions.clear();
-                      subscriberOfFlatMappedA.onComplete(_count);
-                    }
-                  } finally {
-                    ack.ack(FlowControl.cont);
+                public void onComplete() {
+                  if (_sourceDone) {
+                    _publishers.clear();
+                    _subscriptions.clear();
+                    subscriberOfFlatMappedA.onComplete();
                   }
                 }
 
                 @Override
                 public void onError(Throwable cause) {
-                  try {
-                    subscriberOfFlatMappedA.onError(cause);
-                    cancelOtherPublishers();
-                  } finally {
-                    ack.ack(FlowControl.done);
-                  }
+                  subscriberOfFlatMappedA.onError(cause);
+                  cancelOtherPublishers();
                 }
 
                 private void cancelOtherPublishers() {
-                  for (Map.Entry<Publisher<A>, Subscription> entry: _subscriptions.entrySet()) {
+                  for (Map.Entry<Publisher<? extends A>, Subscription> entry: _subscriptions.entrySet()) {
                     if (!entry.getKey().equals(publisher)) {
                       entry.getValue().cancel();
                     }
@@ -70,12 +58,8 @@ public interface Publisher<T> {
                 }
 
                 @Override
-                public void onNext(AckValue<A> element) {
-                  subscriberOfFlatMappedA.onNext(new AckValue<A>(element.get(), element.getAck().andThen(flow -> {
-                    if (flow == FlowControl.done) {
-                      cancelOtherPublishers();
-                    }
-                  })));
+                public void onNext(A element) {
+                  subscriberOfFlatMappedA.onNext(element);
                 }
 
                 @Override
@@ -86,13 +70,13 @@ public interface Publisher<T> {
             }
 
             @Override
-            public void onComplete(int totalTasks) {
+            public void onComplete() {
               // source publisher has finished
               _sourceDone = true;
               if (_publishers.size() == 0) {
                 _publishers.clear();
                 _subscriptions.clear();
-                subscriberOfFlatMappedA.onComplete(_count);
+                subscriberOfFlatMappedA.onComplete();
               }
             }
 
@@ -113,10 +97,10 @@ public interface Publisher<T> {
             }
 
             @Override
-            public void onNext(AckValue<T> element) {
-              Publisher<A> publisher = f.apply(element.get());
+            public void onNext(T element) {
+              Publisher<? extends A> publisher = f.apply(element);
               _publishers.add(publisher);
-              subscribe(publisher, element.getAck());
+              subscribe(publisher);
             }
 
             @Override

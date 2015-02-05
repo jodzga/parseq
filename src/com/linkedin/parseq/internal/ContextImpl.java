@@ -145,7 +145,7 @@ public class ContextImpl implements Context, Cancellable
   }
 
   @Override
-  public void runSubTask(Task<?> task, Task<Object> rootTask) {
+  public void runSubTask(Task<?> task, Task<?> rootTask) {
     // check reference equality to make sure model is consistent i.e.
     // subtasks have same parent
     if (rootTask != _task)  {

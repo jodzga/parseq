@@ -19,7 +19,7 @@ public class StreamFoldable<Z, T> implements Foldable<Z, T, Task<Z>> {
 
   @Override
   public Task<Z> fold(final Z zero, final Reducer<Z, T> reducer) {
-    return new StreamFoldTask<Z, T>("par fold TODO", _input, zero, reducer, _predecessor);
+    return new StreamFoldTask<Z, T>("fold", _input, zero, reducer, _predecessor);
   }
 
 }

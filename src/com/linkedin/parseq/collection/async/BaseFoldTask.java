@@ -7,13 +7,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import com.linkedin.parseq.stream.AckValue;
-import com.linkedin.parseq.stream.AckingSubscriber;
 import com.linkedin.parseq.stream.StreamCollection;
 import com.linkedin.parseq.stream.Subscription;
 import com.linkedin.parseq.task.BaseTask;
 import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.FunctionalTask;
+import com.linkedin.parseq.task.FusionTask;
 import com.linkedin.parseq.task.Priority;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.Tasks;
@@ -54,99 +52,99 @@ public abstract class BaseFoldTask<B, T> extends BaseTask<B> {
   protected Promise<? extends B> run(final Context context) throws Exception
   {
     final SettablePromise<B> result = Promises.settable();
-    final Task<B> that = this; //TODO ???
-
-    _tasks.subscribe(new AckingSubscriber<Task<T>>() {
-      /**
-       * It is expected that onNext method is called
-       * from within Task's run method.
-       */
-      @Override
-      public void onNext(final AckValue<Task<T>> task) {
-        if (!_streamingComplete) {  //TODO questionable: when is _streamingComplete set?
-          scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
-              (p, t) -> {
-                try
-                {
-                  _tasksCompleted++;
-                  if (!result.isDone()) {
-                    if (p.isFailed()) {
-                      _streamingComplete = true;
-                      _partialResult = null;
-                      result.fail(p.getError());
-                      task.ack(FlowControl.done);
-                    } else {
-                      try {
-                        //ack() is called by reducer
-                        Step<B> step = _reducer.apply(_partialResult, new AckValue<T>(p.get(), task.getAck()));
-                        switch (step.getType()) {
-                          case cont:
-                            _partialResult = step.getValue();
-                            if (_streamingComplete && _tasksCompleted == _totalTasks) {
-                              result.done(_partialResult);
-                              _partialResult = null;
-                            }
-                            break;
-                          case done:
-                            result.done(step.getValue());
-                            _partialResult = null;
-                            _streamingComplete = true;
-                            break;
-                        }
-                      } catch (Throwable e) {
-                        _streamingComplete = true;
-                        _partialResult = null;
-                        result.fail(e);
-                      }
-                    }
-                  } else {
-                    //result is resolved, just ack() the task
-                    task.ack(FlowControl.done);
-                  }
-                } finally {
-                  //propagate result
-                  if (p.isFailed()) {
-                    t.fail(p.getError());
-                  } else {
-                    t.done(p.get());
-                  }
-                }
-              } ), context, that);
-        } else {
-          task.ack(FlowControl.done);
-        }
-      }
-
-      @Override
-      public void onComplete(int totalTasks) {
-        _streamingComplete = true;
-        _totalTasks = totalTasks;
-        if (_tasksCompleted == _totalTasks) {
-          result.done(_partialResult);
-          _partialResult = null;
-        }
-      }
-
-      @Override
-      public void onError(Throwable cause) {
-        _streamingComplete = true;
-        if (!result.isDone()) {
-          result.fail(cause);
-        }
-      }
-
-      @Override
-      public void onSubscribe(Subscription subscription) {
-        // TODO handle subscription cancellation
-
-      }
-    });
-
-    if (_predecessor.isPresent()) {
-      context.run(_predecessor.get());
-    }
-
-    _tasks = null;
+//    final Task<B> that = this; //TODO ???
+//
+//    _tasks.subscribe(new AckingSubscriber<Task<T>>() {
+//      /**
+//       * It is expected that onNext method is called
+//       * from within Task's run method.
+//       */
+//      @Override
+//      public void onNext(final AckValue<Task<T>> task) {
+//        if (!_streamingComplete) {  //TODO questionable: when is _streamingComplete set?
+//          scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task.get(),
+//              (p, t) -> {
+//                try
+//                {
+//                  _tasksCompleted++;
+//                  if (!result.isDone()) {
+//                    if (p.isFailed()) {
+//                      _streamingComplete = true;
+//                      _partialResult = null;
+//                      result.fail(p.getError());
+//                      task.ack(FlowControl.done);
+//                    } else {
+//                      try {
+//                        //ack() is called by reducer
+//                        Step<B> step = _reducer.apply(_partialResult, new AckValue<T>(p.get(), task.getAck()));
+//                        switch (step.getType()) {
+//                          case cont:
+//                            _partialResult = step.getValue();
+//                            if (_streamingComplete && _tasksCompleted == _totalTasks) {
+//                              result.done(_partialResult);
+//                              _partialResult = null;
+//                            }
+//                            break;
+//                          case done:
+//                            result.done(step.getValue());
+//                            _partialResult = null;
+//                            _streamingComplete = true;
+//                            break;
+//                        }
+//                      } catch (Throwable e) {
+//                        _streamingComplete = true;
+//                        _partialResult = null;
+//                        result.fail(e);
+//                      }
+//                    }
+//                  } else {
+//                    //result is resolved, just ack() the task
+//                    task.ack(FlowControl.done);
+//                  }
+//                } finally {
+//                  //propagate result
+//                  if (p.isFailed()) {
+//                    t.fail(p.getError());
+//                  } else {
+//                    t.done(p.get());
+//                  }
+//                }
+//              } ), context, that);
+//        } else {
+//          task.ack(FlowControl.done);
+//        }
+//      }
+//
+//      @Override
+//      public void onComplete(int totalTasks) {
+//        _streamingComplete = true;
+//        _totalTasks = totalTasks;
+//        if (_tasksCompleted == _totalTasks) {
+//          result.done(_partialResult);
+//          _partialResult = null;
+//        }
+//      }
+//
+//      @Override
+//      public void onError(Throwable cause) {
+//        _streamingComplete = true;
+//        if (!result.isDone()) {
+//          result.fail(cause);
+//        }
+//      }
+//
+//      @Override
+//      public void onSubscribe(Subscription subscription) {
+//        // TODO handle subscription cancellation
+//
+//      }
+//    });
+//
+//    if (_predecessor.isPresent()) {
+//      context.run(_predecessor.get());
+//    }
+//
+//    _tasks = null;
     return result;
   }
 

@@ -114,9 +114,10 @@ public abstract class AsyncCollectionImpl<T, R> extends Transducible<T, R> imple
 
   //Used only for side-effects
   public Task<?> task() {
-    return foldable().fold(Optional.empty(), acking(transduce((z, r) -> {
-      return Step.cont(z);
-    })));
+    return null;
+//    return foldable().fold(Optional.empty(), acking(transduce((z, r) -> {
+//      return Step.cont(z);
+//    })));
   }
 
   /*
@@ -124,38 +125,41 @@ public abstract class AsyncCollectionImpl<T, R> extends Transducible<T, R> imple
    */
 
   private Task<?> publisherTask(final PushablePublisher<R> pushable, final CancellableSubscription subscription) {
-    final Task<?> fold = foldable().fold(Optional.empty(), transduce((z, ackR) -> {
-      //TODO verify that cancellation semantics is consistent across all collection types and operations
-      if (subscription.isCancelled()) {
-        return Step.done(z);
-      } else {
-        pushable.next(ackR);
-        return Step.cont(z);
-      }
-    }));
-    fold.onResolve(p -> {
-      if (p.isFailed()) {
-        pushable.error(p.getError());
-      } else {
-        pushable.complete();
-      }
-    });
-    return fold;
+//    final Task<?> fold = foldable().fold(Optional.empty(), transduce((z, ackR) -> {
+//      //TODO verify that cancellation semantics is consistent across all collection types and operations
+//      if (subscription.isCancelled()) {
+//        return Step.done(z);
+//      } else {
+//        pushable.next(ackR);
+//        return Step.cont(z);
+//      }
+//    }));
+//    fold.onResolve(p -> {
+//      if (p.isFailed()) {
+//        pushable.error(p.getError());
+//      } else {
+//        pushable.complete();
+//      }
+//    });
+//    return fold;
+    return null;
   }
 
   public <A> AsyncCollectionImpl<A, A> mapTask(final Function<R, Task<A>> f) {
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
-    return createAsyncCollection(pushablePublisher.collection().map(f), Transducer.identity(), Optional.of(publisherTask));
+//    CancellableSubscription subscription = new CancellableSubscription();
+//    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+//    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
+//    return createAsyncCollection(pushablePublisher.collection().map(f), Transducer.identity(), Optional.of(publisherTask));
+    return null;
   }
 
   private <A> AsyncCollectionImpl<A, A> flatMapAsync(final Function<R, AsyncCollectionImpl<A, A>> f) {
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
-    Function<R, StreamCollection<?, Task<A>>> mapper = r -> f.apply(r)._input;
-    return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
+//    CancellableSubscription subscription = new CancellableSubscription();
+//    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+//    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
+//    Function<R, StreamCollection<?, Task<A>>> mapper = r -> f.apply(r)._input;
+//    return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
+    return null;
   }
 
 //  public <A> AsyncCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
@@ -185,11 +189,12 @@ public abstract class AsyncCollectionImpl<T, R> extends Transducible<T, R> imple
 
   @Override
   public <A> ParSeqCollection<A> flatMap(Function<R, ParSeqCollection<A>> f) {
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
-    Function<R, StreamCollection<?, Task<A>>> mapper = r -> flatMapper(f.apply(r));
-    return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
+//    CancellableSubscription subscription = new CancellableSubscription();
+//    PushablePublisher<R> pushablePublisher = new PushablePublisher<R>(subscription);
+//    Task<?> publisherTask = publisherTask(pushablePublisher, subscription);
+//    Function<R, StreamCollection<?, Task<A>>> mapper = r -> flatMapper(f.apply(r));
+//    return createAsyncCollection(pushablePublisher.collection().flatMap(mapper), Transducer.identity(), Optional.of(publisherTask));
+    return null;
   }
 
   @Override

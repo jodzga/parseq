@@ -26,13 +26,13 @@ public class SyncGroupByExample extends AbstractExample
   {
     List<Integer> ints = Arrays.asList(1, 2, 3, 4, 5, 6, 2, 3, 5, 3);
 
-    Task<String> task =
-        Collections.fromIterable(ints)
-        .groupBy(i -> i)
-        .mapTask(group ->
-            (Task<String>)group.count().map(count ->
-              "group: " + group.getKey() + ", count: " + count))
-        .reduce((a, b) -> a + "\n" + b );
+    Task<String> task = null;
+//        Collections.fromIterable(ints)
+//        .groupBy(i -> i)
+//        .mapTask(group ->
+//            (Task<String>)group.count().map(count ->
+//              "group: " + group.getKey() + ", count: " + count))
+//        .reduce((a, b) -> a + "\n" + b );
 
     System.out.println(task);
   }

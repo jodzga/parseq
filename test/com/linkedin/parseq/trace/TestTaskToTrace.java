@@ -274,7 +274,7 @@ public class TestTaskToTrace extends BaseEngineTest
   {
     final Task<String> task = value("taskName", "value");
 
-    final Task<?> seq = Collections.seq(Arrays.asList(task)).first();
+    final Task<?> seq = null; //TODO Collections.seq(Arrays.asList(task)).first();
     getEngine().run(seq);
     assertTrue(seq.await(5, TimeUnit.SECONDS));
 

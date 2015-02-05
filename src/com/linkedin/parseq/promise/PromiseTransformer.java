@@ -4,9 +4,9 @@ import java.util.function.Function;
 
 public class PromiseTransformer<S, T> implements PromisePropagator<S, T> {
 
-  private final Function<S, T> _transform;
+  private final Function<? super S, ? extends T> _transform;
 
-  public PromiseTransformer(Function<S, T> transform) {
+  public PromiseTransformer(Function<? super S, ? extends T> transform) {
     _transform = transform;
   }
 
@@ -42,7 +42,7 @@ public class PromiseTransformer<S, T> implements PromisePropagator<S, T> {
   }
 
   @Override
-  public <R> PromiseTransformer<S, R> map(final Function<T, R> f) {
+  public <R> PromiseTransformer<S, R> map(final Function<? super T, ? extends R> f) {
     return new PromiseTransformer<S, R>(_transform.andThen(f));
   }
 }

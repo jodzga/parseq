@@ -9,10 +9,11 @@ import java.util.function.Predicate;
 
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.TaskOrValue;
+import com.linkedin.parseq.task.Tasks;
 import com.linkedin.parseq.transducer.Foldable;
-import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.transducer.Transducer;
 import com.linkedin.parseq.transducer.Transducible;
+import com.linkedin.parseq.transducer.Reducer.Step;
 
 //TODO implement Publisher interface for streaming
 public class StreamCollection<T, R> extends Transducible<T, R> {
@@ -94,53 +95,91 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     return checkEmptyAsync(find(predicate, foldable()));
   }
 
-  public <A> StreamCollection<A, A> mapTask(final Function<R, Task<A>> f) {
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<TaskOrValue<A>> pushablePublisher = new PushablePublisher<TaskOrValue<A>>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, r -> TaskOrValue.task(f.apply(r)), subscription);
-    return new StreamCollection<A, A>(pushablePublisher, Transducer.identity(), Optional.of(publisherTask));
+  private final TaskOrValue<Step<Object>> CONTINUE = TaskOrValue.value(Step.cont(Optional.empty()));
+  private final Runnable NO_ACTION = () -> {};
+
+  private Task<Void> terminalTask() {
+    return Tasks.action("done", NO_ACTION);
   }
 
-  private <A> Task<?> publisherTask(final PushablePublisher<A> pushable,
-      final Function<R, A> f,
-      final CancellableSubscription subscription) {
-    final Task<?> fold = foldable().fold(Optional.empty(), transduce((z, ackR) -> {
-      //TODO verify that cancellation semantics is consistent across all collection types and operations
-      if (subscription.isCancelled()) {
-        return Step.done(z);
-      } else {
-        pushable.next(ackR.map(r -> f.apply(r)));
-        return Step.cont(z);
-      }
-    }));
-    fold.onResolve(p -> {
-      if (p.isFailed()) {
-        pushable.error(p.getError());
-      } else {
-        pushable.complete();
-      }
-    });
-    return fold;
+  //Used only for side-effects
+  public Task<Void> task() {
+    return foldable().fold(Optional.empty(), transduce((z, r) -> {
+      return CONTINUE;
+    })).andThen(terminalTask());
   }
+
+  public <A> StreamCollection<T, A> mapTask(final Function<R, Task<A>> f) {
+    return create(_transducer.map(r -> r.mapTask(f)));
+  }
+
+  public PublisherTask<R> stream() {
+    //TODO
+    return null;
+
+//    Task<?> subscribe = Tasks.action("subscribe", () -> subscriber.onSubscribe(subscription));
+//    Task<?> foldTask = fold(Optional.empty(), (z, e) -> {
+//      subscriber.onNext(e);
+//      return z;
+//    });
+//    foldTask.addListener(p -> {
+//      if (p.isFailed()) {
+//        subscriber.onError(p.getError());
+//      } else {
+//        subscriber.onComplete(0); //TODO remove counter
+//      }
+//    });
+//    return subscribe.andThen(foldTask.andThen(terminalTask()));
+  }
+
+  private PublisherTask<TaskOrValue<R>> streamImpl() {
+    //TODO
+    return null;
+
+//    Task<?> subscribe = Tasks.action("subscribe", () -> subscriber.onSubscribe(subscription));
+//    Task<?> foldTask = fold(Optional.empty(), (z, e) -> {
+//      subscriber.onNext(e);
+//      return z;
+//    });
+//    foldTask.addListener(p -> {
+//      if (p.isFailed()) {
+//        subscriber.onError(p.getError());
+//      } else {
+//        subscriber.onComplete(0); //TODO remove counter
+//      }
+//    });
+//    return subscribe.andThen(foldTask.andThen(terminalTask()));
+  }
+
 
   public <A> StreamCollection<?, A> flatMap(final Function<R, StreamCollection<?, A>> f) {
-    //TODO use mapTask - each substream will produce potentially a task
-
-    /**
-     * resulting collection:
-     * - task is fold over maTask() which potentially run pedecessors of each subcollection
-     * - each subcollection will have to be traversed to generate publisher - eaach will create task
-     * -
-     */
-
-
-    CancellableSubscription subscription = new CancellableSubscription();
-    PushablePublisher<StreamCollection<?, A>> pushablePublisher = new PushablePublisher<StreamCollection<?, A>>(subscription);
-    Task<?> publisherTask = publisherTask(pushablePublisher, f, subscription);
-    //TODO for each  StreamCollection<?, A> get optional task and publisher
-
-    return null;
+    PublisherTask<PublisherTask<TaskOrValue<A>>> publishersTask =
+        mapTask(f.andThen(collection -> collection.streamImpl())).stream();
+    return new StreamCollection<A, A>(Publisher.flatten(publishersTask), Transducer.identity(),
+        Optional.of(publishersTask));
   }
+
+//private <A> Task<?> publisherTask(final PushablePublisher<A> pushable,
+//final Function<R, A> f,
+//final CancellableSubscription subscription) {
+//final Task<?> fold = foldable().fold(Optional.empty(), transduce((z, ackR) -> {
+////TODO verify that cancellation semantics is consistent across all collection types and operations
+//if (subscription.isCancelled()) {
+//  return Step.done(z);
+//} else {
+//  pushable.next(ackR.map(r -> f.apply(r)));
+//  return Step.cont(z);
+//}
+//}));
+//fold.onResolve(p -> {
+//if (p.isFailed()) {
+//  pushable.error(p.getError());
+//} else {
+//  pushable.complete();
+//}
+//});
+//return fold;
+//}
 
   public <A> StreamCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
     return null;
@@ -218,6 +257,12 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
 
   protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
     return result.map("checkEmpty", Transducible::checkEmpty);
+  }
+
+  public static <A> StreamCollection<A, A> fromIterable(final Iterable<A> iterable) {
+    IterablePublisher<A> publisher = new IterablePublisher<A>(iterable);
+    return new StreamCollection<A, A>(publisher, Transducer.identity(),
+        Optional.of(Tasks.action("iterator", publisher::run)));
   }
 
 }

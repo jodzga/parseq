@@ -404,7 +404,7 @@ public class TestTaskStates
     }
 
     @Override
-    public void runSubTask(Task<?> task, Task<Object> rootTask) {
+    public void runSubTask(Task<?> task, Task<?> rootTask) {
       throw new UnsupportedOperationException();
     }
 

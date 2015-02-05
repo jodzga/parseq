@@ -3,18 +3,18 @@ package com.linkedin.parseq.stream;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.linkedin.parseq.task.BaseTask;
 import com.linkedin.parseq.task.Context;
-import com.linkedin.parseq.task.FunctionalTask;
+import com.linkedin.parseq.task.FusionTask;
 import com.linkedin.parseq.task.Priority;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.task.Tasks;
-import com.linkedin.parseq.transducer.FlowControl;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
 
@@ -25,9 +25,9 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
 
   private Publisher<TaskOrValue<T>> _tasks;
   private boolean _streamingComplete = false;
-  private int _totalElements;
-  private int _elementsCompleted = 0;
+  private int _pending = 0;
   private Z _partialResult;
+  private Subscription _subscription;
   private final Reducer<Z, T> _reducer;
   private final Optional<Task<?>> _predecessor;
   private final String _name;
@@ -49,27 +49,39 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
   protected Promise<? extends Z> run(final Context context) throws Exception
   {
     final SettablePromise<Z> result = Promises.settable();
-    final Task<Z> that = this; //TODO ???
+    final Task<Z> that = this;
 
-    _tasks.subscribe(new AckingSubscriber<TaskOrValue<T>>() {
+    _tasks.subscribe(new Subscriber<TaskOrValue<T>>() {
 
-      private void onNextValue(AckValue<T> t) {
-        try {
-          //ack() is called by reducer
-          Step<Z> step = _reducer.apply(_partialResult, t);
-          switch (step.getType()) {
-            case cont:
-              _partialResult = step.getValue();
-              if (_streamingComplete && _elementsCompleted == _totalElements) {
-                result.done(_partialResult);
-                _partialResult = null;
-              }
-              break;
-            case done:
-              result.done(step.getValue());
+      private void onNextStep(Step<Z> step) {
+        switch (step.getType()) {
+          case cont:
+            _partialResult = step.getValue();
+            if (_streamingComplete && _pending == 0) {
+              result.done(_partialResult);
               _partialResult = null;
-              _streamingComplete = true;
-              break;
+            }
+            break;
+          case done:
+            _partialResult = null;
+            _subscription.cancel();
+            result.done(step.getValue());
+            break;
+        }
+      }
+
+      private void onNextValue(TaskOrValue<T> tValue) {
+        try {
+          TaskOrValue<Step<Z>> step = _reducer.apply(_partialResult, tValue);
+          if (step.isTask()) {
+            _pending++;
+            scheduleTask(fusedPropgatingTask("reduce", step.getTask(),
+                s -> {
+                  _pending--;
+                  onNextStep(s);
+                }), context, that);
+          } else {
+            onNextStep(step.getValue());
           }
         } catch (Throwable e) {
           _streamingComplete = true;
@@ -78,34 +90,41 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
         }
       }
 
-      private void onNextTask(Task<T> task, Ack ack) {
-          scheduleTask(new FunctionalTask<T, T>("step(" + _name + ")", task,
-              (p, t) -> {
-                try
-                {
-                  _elementsCompleted++;
-                  if (!result.isDone()) {
-                    if (p.isFailed()) {
-                      _streamingComplete = true;
-                      _partialResult = null;
-                      result.fail(p.getError());
-                      ack.ack(FlowControl.done);
-                    } else {
-                      onNextValue(new AckValue<T>(p.get(), ack));
-                    }
-                  } else {
-                    //result is resolved, just ack() the task
-                    ack.ack(FlowControl.done);
-                  }
-                } finally {
-                  //propagate result
+      private void onNextTask(Task<T> task) {
+        _pending++;
+        scheduleTask(fusedPropgatingTask("step", task,
+            t -> onNextValue(TaskOrValue.value(t))), context, that);
+      }
+
+      private <A> FusionTask<A, A> fusedPropgatingTask(final String description, final Task<A> task, final Consumer<A> consumer) {
+        return new FusionTask<A, A>(description + "(" + _name + ")", task,
+            (p, t) -> {
+              try
+              {
+                if (!result.isDone()) {
                   if (p.isFailed()) {
-                    t.fail(p.getError());
+                    _subscription.cancel();
+                    _partialResult = null;
+                    result.fail(p.getError());
                   } else {
-                    t.done(p.get());
+                    consumer.accept(p.get());
                   }
+                } else {
+                  /**
+                   * result is resolved, it means that stream has completed or
+                   * it has been cancelled
+                   */
                 }
-              }), context, that);
+              } finally {
+                _pending--;
+                //propagate result
+                if (p.isFailed()) {
+                  t.fail(p.getError());
+                } else {
+                  t.done(p.get());
+                }
+              }
+            });
       }
 
       /**
@@ -113,27 +132,22 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
        * from within Task's run method.
        */
       @Override
-      public void onNext(final AckValue<TaskOrValue<T>> taskOrValueWrapped) {
-        if (!_streamingComplete) {  //TODO questionable: when is _streamingComplete set?
-          final TaskOrValue<T> taskOrValue = taskOrValueWrapped.get();
-          if (taskOrValue.isTask()) {
-            onNextTask(taskOrValue.getTask(), taskOrValueWrapped.getAck());
-          } else {
-            _elementsCompleted++;
-            onNextValue(new AckValue<T>(taskOrValueWrapped.get().getValue(), taskOrValueWrapped.getAck()));
-          }
+      public void onNext(final TaskOrValue<T> taskOrValue) {
+        if (taskOrValue.isTask()) {
+          onNextTask(taskOrValue.getTask());
         } else {
-          taskOrValueWrapped.ack(FlowControl.done);
+          onNextValue(taskOrValue);
         }
       }
 
       @Override
-      public void onComplete(int totalTasks) {
+      public void onComplete() {
         _streamingComplete = true;
-        _totalElements = totalTasks;
-        if (_elementsCompleted == _totalElements) {
-          result.done(_partialResult);
-          _partialResult = null;
+        if (_pending == 0) {
+          if (!result.isDone()) {
+            result.done(_partialResult);
+            _partialResult = null;
+          }
         }
       }
 
@@ -142,13 +156,13 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
         _streamingComplete = true;
         if (!result.isDone()) {
           result.fail(cause);
+          _partialResult = null;
         }
       }
 
       @Override
       public void onSubscribe(Subscription subscription) {
-        // TODO handle subscription cancellation
-
+        _subscription = subscription;
       }
     });
 
@@ -203,8 +217,8 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
     return this;
   }
 
-  void scheduleTask(Task<T> task, Context context, Task<Z> rootTask) {
-    context.runSubTask(task, (Task<Object>) rootTask);
+  void scheduleTask(Task<?> task, Context context, Task<?> rootTask) {
+    context.runSubTask(task, rootTask);
   }
 
 }

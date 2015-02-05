@@ -127,7 +127,7 @@ public interface Promise<P>
   /**
    * When this Promise is done, either through a Throwable or a value,
    * call the provided Consumer of this Promise.
-   * 
+   *
    * @param consumer the Consumer to be called when this Promise is done.
    */
   default void onResolve(final Consumer<Promise<P>> consumer)
@@ -143,7 +143,7 @@ public interface Promise<P>
   /**
    * When this Promise is successfully done through a value,
    * call the provided Consumer of that value.
-   * 
+   *
    * @param consumer the Consumer to be called when this Promise is successfully done.
    */
   default void onSuccess(final Consumer<P> consumer)
@@ -161,7 +161,7 @@ public interface Promise<P>
   /**
    * When this Promise is done through a Throwable,
    * call the provided Consumer of that Throwable.
-   * 
+   *
    * @param consumer the Consumer to be called when this Promise is successfully done.
    */
   default void onFailure(final Consumer<Throwable> consumer)
