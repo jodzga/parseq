@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.linkedin.parseq.collection.GroupedAsyncCollection;
+import com.linkedin.parseq.collection.ParSeqCollection;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.task.Tasks;
@@ -16,7 +18,7 @@ import com.linkedin.parseq.transducer.Transducer;
 import com.linkedin.parseq.transducer.Transducible;
 
 //TODO implement Publisher interface for streaming
-public class StreamCollection<T, R> extends Transducible<T, R> {
+public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeqCollection<R> {
 
   private final Publisher<TaskOrValue<T>> _source;
   private final Optional<Task<?>> _predecessor;
@@ -108,15 +110,17 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     return create(_transducer.map(r -> r.mapTask(f)));
   }
 
-  public <A> StreamCollection<?, A> flatMap(final Function<R, StreamCollection<?, A>> f) {
+  @Override
+  public <A> ParSeqCollection<A> flatMap(Function<R, ParSeqCollection<A>> f) {
 
     CancellableSubscription subscription = new CancellableSubscription();
     final PushablePublisher<Publisher<TaskOrValue<A>>> publisher = new PushablePublisher<Publisher<TaskOrValue<A>>>(subscription);
 
+    @SuppressWarnings("unchecked")
     Task<?> publisherTask = mapTask(r -> {
       final PushablePublisher<TaskOrValue<A>> pushablePublisher = new PushablePublisher<TaskOrValue<A>>(subscription);
       publisher.next(pushablePublisher);
-      return f.apply(r).publisherTask(pushablePublisher, subscription);
+      return ((StreamCollection<?, A>)f.apply(r)).publisherTask(pushablePublisher, subscription);
     }).task();
 
     //TODO order of onResolve?
@@ -131,7 +135,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     return new StreamCollection<A, A>(Publisher.flatten(publisher), Transducer.identity(), Optional.of(publisherTask));
   }
 
-  private Task<?> publisherTask(final PushablePublisher<TaskOrValue<R>> pushable,
+  protected Task<?> publisherTask(final PushablePublisher<TaskOrValue<R>> pushable,
       final CancellableSubscription subscription) {
     final Task<?> fold = foldable().fold("toStream", Optional.empty(), transduce((z, r) -> {
         if (subscription.isCancelled()) {
@@ -151,8 +155,8 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     return fold;
   }
 
-  public <A> StreamCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
-    return null;
+//  public <A> StreamCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
+//    return null;
 //    final Publisher<R> that = this;
 //    return new Publisher<GroupedStreamCollection<A, R, R>>() {
 //      private int groupCount = 0;
@@ -223,7 +227,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
 //        });
 //      }
 //    }.collection();
-  }
+//  }
 
   protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
     return result.map("checkEmpty", Transducible::checkEmpty);
@@ -239,6 +243,24 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     IterablePublisher<Task<A>, A> publisher = new TasksPublisher<A>(iterable);
     return new StreamCollection<A, A>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("tasks", publisher::run)));
+  }
+
+  @Override
+  public ParSeqCollection<R> withSideEffect(Consumer<R> consumer) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Task<Integer> count() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <K> ParSeqCollection<GroupedAsyncCollection<K, R>> groupBy(Function<R, K> classifier) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

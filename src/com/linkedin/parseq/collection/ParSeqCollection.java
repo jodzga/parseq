@@ -30,8 +30,6 @@ public interface ParSeqCollection<T> {
 
   public <A> ParSeqCollection<A> mapTask(final Function<T, Task<A>> f);
 
-  public ParSeqCollection<T> toSeq();
-
   public <A> ParSeqCollection<A> flatMap(final Function<T, ParSeqCollection<A>> f);
 
   public <K> ParSeqCollection<GroupedAsyncCollection<K, T>> groupBy(final Function<T, K> classifier);
