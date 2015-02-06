@@ -58,8 +58,6 @@ import com.linkedin.parseq.trace.Trace;
  */
 public interface Task<T> extends Promise<T>, Cancellable
 {
-  public final static String NO_DESCRIPTION = "Unnamed";
-
   /**
    * Returns the name of this task.
    *
@@ -145,7 +143,7 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which will apply given function on result of successful completion of this task
    */
   default <R> Task<R> map(final String desc, final Function<T, R> f) {
-    return apply(desc + "(" + getName() + ")", new PromiseTransformer<T, R>(f));
+    return apply(desc, new PromiseTransformer<T, R>(f));
   }
 
   //TODO move description to be a last parameter and add enum or fla to signify if it is supposed to be hidden
@@ -171,9 +169,8 @@ public interface Task<T> extends Promise<T>, Cancellable
     return flatMap("flatMap", f);
   }
 
-  default <R> Task<R> mapOrFlatMap(final String desc, final Function<T, TaskOrValue<R>> f) {
+  default <R> Task<R> mapOrFlatMap(final String name, final Function<T, TaskOrValue<R>> f) {
     final Task<T> that = this;
-    final String name = desc + "(" + getName() + ")";
     return new SystemHiddenTask<R>(name) {
       @Override
       protected Promise<R> run(Context context) throws Throwable {
@@ -221,7 +218,7 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task with the result of this Task
    */
   default Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return apply("andThen(" + getName() + ", "+ desc + ")",
+    return apply(desc,
         new PromiseTransformer<T,T>(t -> {
           consumer.accept(t);
           return t;
@@ -229,13 +226,12 @@ public interface Task<T> extends Promise<T>, Cancellable
   }
 
   default Task<T> andThen(final Consumer<T> consumer) {
-    return andThen(NO_DESCRIPTION, consumer);
+    return andThen("andThen", consumer);
   }
 
   default <R> Task<R> andThen(final String desc, final Task<R> task) {
     final Task<T> that = this;
-    final String name = "andThen(" + getName() + ", "+ desc + ")";
-    return new SystemHiddenTask<R>(name) {
+    return new SystemHiddenTask<R>(desc) {
       @Override
       protected Promise<R> run(Context context) throws Throwable {
         final SettablePromise<R> result = Promises.settable();
@@ -248,7 +244,7 @@ public interface Task<T> extends Promise<T>, Cancellable
   }
 
   default <R> Task<R> andThen(final Task<R> task) {
-    return andThen(NO_DESCRIPTION, task);
+    return andThen("andThen", task);
   }
 
   /**
@@ -262,7 +258,7 @@ public interface Task<T> extends Promise<T>, Cancellable
    * @return a new Task which can recover from Throwable thrown by this Task
    */
   default Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return apply("recover(" + getName() +", " + desc + ")",  (src, dst) -> {
+    return apply(desc,  (src, dst) -> {
       if (src.isFailed()) {
         try {
           dst.done(f.apply(src.getError()));
@@ -276,12 +272,12 @@ public interface Task<T> extends Promise<T>, Cancellable
   }
 
   default Task<T> recover(final Function<Throwable, T> f) {
-    return recover(NO_DESCRIPTION, f);
+    return recover("recover", f);
   }
 
   default Task<Try<T>> withTry() {
-    return map("try", t -> Success.of(t))
-             .recover("failure", t -> Failure.of(t));
+    return map("withTry", t -> Success.of(t))
+             .recover("withTry", t -> Failure.of(t));
   }
 
   /**
@@ -298,12 +294,11 @@ public interface Task<T> extends Promise<T>, Cancellable
    */
   default Task<T> recoverWith(final String desc, final Function<Throwable, Task<T>> f) {
     final Task<T> that = this;
-    final String name = "recoverWith(" + getName() +", " + desc + ")";
-    return new SystemHiddenTask<T>("recoverWith(" + getName() +", " + desc + ")") {
+    return new SystemHiddenTask<T>(desc) {
       @Override
       protected Promise<T> run(Context context) throws Throwable {
         final SettablePromise<T> result = Promises.settable();
-        context.after(that).run(new SystemHiddenTask<T>(name) {
+        context.after(that).run(new SystemHiddenTask<T>(desc) {
           @Override
           protected Promise<T> run(Context context) throws Throwable {
             if (that.isFailed()) {
@@ -343,11 +338,11 @@ public interface Task<T> extends Promise<T>, Cancellable
   default Task<T> fallBackTo(final String desc, final Function<Throwable, Task<T>> f) {
     //TODO
 
-    return new SystemHiddenTask<T>("fallBackTo(" + getName() +", " + desc + ")") {
+    return new SystemHiddenTask<T>(desc) {
       @Override
       protected Promise<T> run(final Context context) throws Throwable {
         final SettablePromise<T> result = Promises.settable();
-        context.run(apply("fallBackTo(" + getName() +", " + desc + ")", (src, dst) -> {
+        context.run(apply(desc, (src, dst) -> {
           if (src.isFailed()) {
             try {
               Task<T> recovery = f.apply(src.getError());  //TODO get rid of TransformingPromiseListener

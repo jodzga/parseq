@@ -91,7 +91,7 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
   }
 
   public Task<List<R>> all() {
-    return all(foldable());
+    return toList(foldable());
   }
 
   public Task<R> reduce(final BiFunction<R, R, R> op) {

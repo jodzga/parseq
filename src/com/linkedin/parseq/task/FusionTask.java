@@ -22,6 +22,8 @@ import com.linkedin.parseq.promise.SettablePromise;
 //TODO zmienic w jaki sposob task jest hidded - nie przez inheritance
 public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
+  private static final String FUSION_TRACE_SYMBOL = " - ";
+
   private PromisePropagator<S, T> _propagator;
   private final Task<S> _task;
 
@@ -47,18 +49,18 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {
-    return new FusionTask<S, R>(getName() + "|" + desc, _task, _propagator.map(f));
+    return new FusionTask<S, R>(getName() + FUSION_TRACE_SYMBOL + desc, _task, _propagator.map(f));
   }
 
   @Override
   public Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return new FusionTask<S, T>(getName() + "|andThen:"+ desc, _task,
+    return new FusionTask<S, T>(getName() + FUSION_TRACE_SYMBOL + desc, _task,
         _propagator.andThen(consumer));
   }
 
   @Override
   public Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return new FusionTask<S, T>(getName() +"|recover:" + desc, _task, (src, dst) -> {
+    return new FusionTask<S, T>(getName() +FUSION_TRACE_SYMBOL + desc, _task, (src, dst) -> {
       _propagator.accept(src, new Settable<T>() {
         @Override
         public void done(T value) throws PromiseResolvedException {

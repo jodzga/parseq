@@ -101,7 +101,7 @@ public abstract class Transducible<T, R> {
     return foldable.fold(Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.cont(Optional.of(rValue)))));
   }
 
-  protected <V> V all(final Foldable<List<R>, T, V> foldable) {
+  protected <V> V toList(final Foldable<List<R>, T, V> foldable) {
     return foldable.fold(new ArrayList<R>(), transduce((z, r) -> r.map(rValue -> {
       z.refGet().add(rValue);
       return Step.cont(z.refGet());

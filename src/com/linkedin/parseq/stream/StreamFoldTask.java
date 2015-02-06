@@ -100,7 +100,7 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
       }
 
       private <A> FusionTask<?, A> fusedPropgatingTask(final String description, final Task<A> task, final Consumer<A> consumer) {
-        return FusionTask.fuse(description + "(" + _name + ")", task,
+        return FusionTask.fuse(description, task,
             (p, t) -> {
               try
               {

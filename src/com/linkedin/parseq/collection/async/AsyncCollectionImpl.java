@@ -97,7 +97,7 @@ public abstract class AsyncCollectionImpl<T, R> extends Transducible<T, R> imple
   }
 
   public Task<List<R>> all() {
-    return all(foldable());
+    return toList(foldable());
   }
 
   public Task<R> reduce(final BiFunction<R, R, R> op) {

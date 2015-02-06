@@ -83,8 +83,8 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     return checkEmptyAsync(last(foldable()));
   }
 
-  public Task<List<R>> all() {
-    return all(foldable());
+  public Task<List<R>> toList() {
+    return toList(foldable());
   }
 
   public Task<R> reduce(final BiFunction<R, R, R> op) {
@@ -120,7 +120,6 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     }).task();
 
     //TODO order of onResolve?
-    
     publisherTask.onResolve(p -> {
       if (p.isFailed()) {
         publisher.error(p.getError());

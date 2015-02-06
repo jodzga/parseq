@@ -114,7 +114,7 @@ public class SyncCollection<T, R> extends Transducible<T, R> implements ParSeqCo
 
   @Override
   public Task<List<R>> all() {
-    return Tasks.callable("all", all(foldable()));
+    return Tasks.callable("all", toList(foldable()));
   }
 
   @Override
@@ -129,7 +129,7 @@ public class SyncCollection<T, R> extends Transducible<T, R> implements ParSeqCo
 
   @Override
   public Task<Integer> count() {
-    return Tasks.callable("count", all(foldable()).map(r -> r.size()));
+    return Tasks.callable("count", toList(foldable()).map(r -> r.size()));
   }
 
   /*
@@ -179,7 +179,7 @@ public class SyncCollection<T, R> extends Transducible<T, R> implements ParSeqCo
       @Override
       public Iterator<GroupedAsyncCollection<K, R>> iterator() {
         final Map<K, List<R>> innerMap = new HashMap<K, List<R>>();
-        for (R element: all(foldable()).call()) {
+        for (R element: toList(foldable()).call()) {
           K group = classifier.apply(element);
           List<R> list = innerMap.get(group);
           if (list == null) {
