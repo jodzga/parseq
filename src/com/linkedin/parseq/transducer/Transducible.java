@@ -90,7 +90,7 @@ public abstract class Transducible<T, R> {
    */
 
   protected <Z, V> V fold(final Z zero, final BiFunction<Z, R, Z> op, final Foldable<Z, T, V> foldable) {
-    return foldable.fold(zero, transduce((z, e) -> e.map(eValue -> Step.cont(op.apply(z, eValue)))));
+    return foldable.fold(zero, transduce((z, e) -> e.map(eValue -> Step.cont(op.apply(z.refGet(), eValue)))));
   }
 
   protected <V> V first(final Foldable<Optional<R>, T, V> foldable) {
@@ -103,15 +103,15 @@ public abstract class Transducible<T, R> {
 
   protected <V> V all(final Foldable<List<R>, T, V> foldable) {
     return foldable.fold(new ArrayList<R>(), transduce((z, r) -> r.map(rValue -> {
-      z.add(rValue);
-      return Step.cont(z);
+      z.refGet().add(rValue);
+      return Step.cont(z.refGet());
     })));
   }
 
   protected <V> V reduce(final BiFunction<R, R, R> op, final Foldable<Optional<R>, T, V> foldable) {
     return foldable.fold(Optional.empty(), transduce((z, e) -> e.map(eValue -> {
-      if (z.isPresent()) {
-        return Step.cont(Optional.of(op.apply(z.get(), eValue)));
+      if (z.refGet().isPresent()) {
+        return Step.cont(Optional.of(op.apply(z.refGet().get(), eValue)));
       } else {
         return Step.cont(Optional.of(eValue));
       }
@@ -123,7 +123,7 @@ public abstract class Transducible<T, R> {
       if (predicate.test(eValue)) {
         return Step.done(Optional.of(eValue));
       } else {
-        return Step.cont(z);
+        return Step.cont(z.refGet());
       }
     })));
   }

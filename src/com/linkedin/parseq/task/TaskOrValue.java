@@ -3,8 +3,6 @@ package com.linkedin.parseq.task;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 
-import com.linkedin.parseq.transducer.Reducer;
-import com.linkedin.parseq.transducer.Transducer;
 import com.linkedin.parseq.util.Objects;
 
 

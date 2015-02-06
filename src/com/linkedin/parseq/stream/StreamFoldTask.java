@@ -17,11 +17,12 @@ import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.task.Tasks;
 import com.linkedin.parseq.transducer.Reducer;
 import com.linkedin.parseq.transducer.Reducer.Step;
+import com.linkedin.parseq.transducer.Ref;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public class StreamFoldTask<Z, T> extends BaseTask<Z> {
+public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
 
   private Publisher<TaskOrValue<T>> _tasks;
   private boolean _streamingComplete = false;
@@ -49,7 +50,6 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
   protected Promise<? extends Z> run(final Context context) throws Exception
   {
     final SettablePromise<Z> result = Promises.settable();
-    final Task<Z> that = this;
 
     _tasks.subscribe(new Subscriber<TaskOrValue<T>>() {
 
@@ -72,14 +72,14 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
 
       private void onNextValue(TaskOrValue<T> tValue) {
         try {
-          TaskOrValue<Step<Z>> step = _reducer.apply(_partialResult, tValue);
+          TaskOrValue<Step<Z>> step = _reducer.apply(StreamFoldTask.this, tValue);
           if (step.isTask()) {
             _pending++;
             scheduleTask(fusedPropgatingTask("reduce", step.getTask(),
                 s -> {
                   _pending--;
                   onNextStep(s);
-                }), context, that);
+                }), context, StreamFoldTask.this);
           } else {
             onNextStep(step.getValue());
           }
@@ -96,7 +96,7 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
             t -> {
               _pending--;
               onNextValue(TaskOrValue.value(t));
-            }), context, that);
+            }), context, StreamFoldTask.this);
       }
 
       private <A> FusionTask<?, A> fusedPropgatingTask(final String description, final Task<A> task, final Consumer<A> consumer) {
@@ -221,6 +221,16 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
 
   void scheduleTask(Task<?> task, Context context, Task<?> rootTask) {
     context.runSubTask(task, rootTask);
+  }
+
+  @Override
+  public Z refGet() {
+    return _partialResult;
+  }
+
+  @Override
+  public void refSet(Z t) {
+    _partialResult = t;
   }
 
 }

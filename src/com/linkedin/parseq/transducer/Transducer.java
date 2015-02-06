@@ -51,13 +51,13 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
     Integers.requireNonNegative(n);
     if (n > 0) {
       final Counter counter = new Counter(0);
-      return fr -> apply((z, r) -> {
+      return fr -> apply((z, r) -> r.flatMap(rValue -> {
         if (counter.inc() < n) {
-          return fr.apply(z,r);
+          return fr.apply(z, TaskOrValue.value(rValue));
         } else {
-          return fr.apply(z, r).flatMap(s -> TaskOrValue.value(Step.done(s.getValue())));
+          return fr.apply(z, TaskOrValue.value(rValue)).flatMap(s -> TaskOrValue.value(Step.done(s.getValue())));
         }
-      });
+      }));
     } else {
       return fr -> apply((z, r) -> TaskOrValue.value(Step.done(z)));
     }
@@ -67,13 +67,13 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
     Integers.requireNonNegative(n);
     if (n >= 0) {
       final Counter counter = new Counter(0);
-      return fr -> apply((z, r) -> {
+      return fr -> apply((z, r) -> r.flatMap( rValue -> {
         if (counter.inc() < n) {
           return TaskOrValue.value(Step.cont(z));
         } else {
-          return fr.apply(z, r);
+          return fr.apply(z, TaskOrValue.value(rValue));
         }
-      });
+      }));
     } else {
       return this;
     }
@@ -101,22 +101,16 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
 
   default Transducer<T, R> dropWhile(final Predicate<R> predicate) {
     final Trap trap = new Trap();
-    return fr -> apply((z, r) -> {
+    return fr -> apply((z, r) -> r.flatMap(rValue -> {
       if (!trap.closed()) {
-        return r.flatMap(rValue -> {
-          if (!trap.closed()) {
-            if (predicate.test(rValue)) {
-              return TaskOrValue.value(Step.cont(z));
-            } else {
-             trap.trigger();
-            }
-          }
-          return fr.apply(z, TaskOrValue.value(rValue));
-        });
-      } else {
-        return fr.apply(z, r);
+        if (predicate.test(rValue)) {
+          return TaskOrValue.value(Step.cont(z));
+        } else {
+          trap.trigger();
+        }
       }
-    });
+      return fr.apply(z, TaskOrValue.value(rValue));
+    }));
   }
 
   /**
