@@ -12,48 +12,53 @@ import com.linkedin.parseq.promise.Settable;
 import com.linkedin.parseq.promise.SettablePromise;
 
 /**
- * TODO consider adding PureFunctionTask for cases where function is
- * side effect free. In this case we don't need to schedule new task
- * on engine to execute it.
- *
- * TODO define how cancellation is supposed to work with FunctionalTask
+ * TODO define how cancellation is supposed to work
  *
  * @author jodzga
  *
  * @param <S>
  * @param <T>
  */
-
+//TODO zmienic w jaki sposob task jest hidded - nie przez inheritance
 public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
   private PromisePropagator<S, T> _propagator;
   private final Task<S> _task;
 
-  public FusionTask(final String name, Task<S> task, PromisePropagator<S, T> propagator) {
+  public FusionTask(final String name, final Task<S> task, final PromisePropagator<S, T> propagator) {
     super(name);
     _propagator = propagator;
     _task = task;
   }
 
+  @SuppressWarnings("unchecked")
+  public static <S, T> FusionTask<?, T> fuse(final String name, final Task<S> task, final PromisePropagator<S, T> propagator) {
+    if (task instanceof FusionTask) {
+      return ((FusionTask<?, S>)task).apply(name, propagator);
+    } else {
+      return new FusionTask<S, T>(name, task, propagator);
+    }
+  }
+
   @Override
-  public <R> Task<R> apply(String desc, PromisePropagator<T,R> propagator) {
+  public <R> FusionTask<?, R> apply(String desc, PromisePropagator<T,R> propagator) {
     return new FusionTask<S, R>(desc, _task, _propagator.compose(propagator));
   };
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {
-    return new FusionTask<S, R>(desc + "(" + getName() + ")", _task, _propagator.map(f));
+    return new FusionTask<S, R>(getName() + "|" + desc, _task, _propagator.map(f));
   }
 
   @Override
   public Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return new FusionTask<S, T>("andThen(" + getName() + ", "+ desc + ")", _task,
+    return new FusionTask<S, T>(getName() + "|andThen:"+ desc, _task,
         _propagator.andThen(consumer));
   }
 
   @Override
   public Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return new FusionTask<S, T>("recover(" + getName() +", " + desc + ")", _task, (src, dst) -> {
+    return new FusionTask<S, T>(getName() +"|recover:" + desc, _task, (src, dst) -> {
       _propagator.accept(src, new Settable<T>() {
         @Override
         public void done(T value) throws PromiseResolvedException {
@@ -73,19 +78,23 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
   //TODO implement other functions
 
+  protected SettablePromise<T> propagate(Promise<S> promise, SettablePromise<T> result) {
+    try {
+      _propagator.accept(_task, result);
+      return result;
+    } catch (Throwable t) {
+      result.fail(t);
+      return result;
+    }
+  }
+
   @Override
   protected Promise<? extends T> run(Context context) throws Throwable {
     final SettablePromise<T> result = Promises.settable();
     context.after(_task).run(new SystemHiddenTask<T>(FusionTask.this.getName()) {
       @Override
       protected Promise<? extends T> run(Context context) throws Throwable {
-        try {
-          _propagator.accept(_task, result);
-          return result;
-        } catch (Throwable t) {
-          result.fail(t);
-          return result;
-        }
+        return propagate(_task, result);
       }
     });
     context.run(_task);

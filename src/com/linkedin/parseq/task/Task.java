@@ -134,7 +134,7 @@ public interface Task<T> extends Promise<T>, Cancellable
   Set<Related<Task<?>>> getRelationships();
 
   default <R> Task<R> apply(final String desc, final PromisePropagator<T, R> propagator) {
-    return new FusionTask<T, R>(desc, this, propagator);
+    return FusionTask.fuse(desc, this, propagator);
   }
 
   /**

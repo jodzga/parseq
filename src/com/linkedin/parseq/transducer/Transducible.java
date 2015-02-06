@@ -108,21 +108,12 @@ public abstract class Transducible<T, R> {
     })));
   }
 
-  private static class BooleanHolder {
-    private boolean _value = false;
-    public BooleanHolder(boolean value) {
-      _value = value;
-    }
-  }
-
   protected <V> V reduce(final BiFunction<R, R, R> op, final Foldable<Optional<R>, T, V> foldable) {
-    final BooleanHolder first = new BooleanHolder(true);
     return foldable.fold(Optional.empty(), transduce((z, e) -> e.map(eValue -> {
-      if (first._value) {
-        first._value = false;
-        return Step.cont(Optional.of(eValue));
-      } else {
+      if (z.isPresent()) {
         return Step.cont(Optional.of(op.apply(z.get(), eValue)));
+      } else {
+        return Step.cont(Optional.of(eValue));
       }
     })));
   }

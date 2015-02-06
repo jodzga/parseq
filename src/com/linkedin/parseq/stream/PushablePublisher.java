@@ -3,7 +3,6 @@ package com.linkedin.parseq.stream;
 
 public class PushablePublisher<T> implements Publisher<T>{
   private Subscriber<? super T> _subscriber;
-  private int count = 0;
   private final Subscription _subscription;
 
   public PushablePublisher(Subscription subscription) {
@@ -25,7 +24,6 @@ public class PushablePublisher<T> implements Publisher<T>{
   }
 
   public void next(T value) {
-    count++;
     _subscriber.onNext(value);
   }
 

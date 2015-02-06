@@ -36,6 +36,8 @@ public interface Publisher<T> {
 
                 @Override
                 public void onComplete() {
+                  _publishers.remove(publisher);
+                  _subscriptions.remove(publisher);
                   if (_sourceDone) {
                     _publishers.clear();
                     _subscriptions.clear();
@@ -45,6 +47,8 @@ public interface Publisher<T> {
 
                 @Override
                 public void onError(Throwable cause) {
+                  _publishers.remove(publisher);
+                  _subscriptions.remove(publisher);
                   subscriberOfFlatMappedA.onError(cause);
                   cancelOtherPublishers();
                 }

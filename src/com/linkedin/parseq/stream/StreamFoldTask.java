@@ -93,14 +93,24 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
       private void onNextTask(Task<T> task) {
         _pending++;
         scheduleTask(fusedPropgatingTask("step", task,
-            t -> onNextValue(TaskOrValue.value(t))), context, that);
+            t -> {
+              _pending--;
+              onNextValue(TaskOrValue.value(t));
+            }), context, that);
       }
 
-      private <A> FusionTask<A, A> fusedPropgatingTask(final String description, final Task<A> task, final Consumer<A> consumer) {
-        return new FusionTask<A, A>(description + "(" + _name + ")", task,
+      private <A> FusionTask<?, A> fusedPropgatingTask(final String description, final Task<A> task, final Consumer<A> consumer) {
+        return FusionTask.fuse(description + "(" + _name + ")", task,
             (p, t) -> {
               try
               {
+                //propagate result
+                if (p.isFailed()) {
+                  t.fail(p.getError());
+                } else {
+                  t.done(p.get());
+                }
+              } finally {
                 if (!result.isDone()) {
                   if (p.isFailed()) {
                     _subscription.cancel();
@@ -114,14 +124,6 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> {
                    * result is resolved, it means that stream has completed or
                    * it has been cancelled
                    */
-                }
-              } finally {
-                _pending--;
-                //propagate result
-                if (p.isFailed()) {
-                  t.fail(p.getError());
-                } else {
-                  t.done(p.get());
                 }
               }
             });
