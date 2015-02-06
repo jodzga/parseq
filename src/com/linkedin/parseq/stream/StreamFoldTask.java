@@ -31,8 +31,6 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
   private Subscription _subscription;
   private final Reducer<Z, T> _reducer;
   private final Optional<Task<?>> _predecessor;
-  private final String _name;
-
 
   public StreamFoldTask(final String name, final Publisher<TaskOrValue<T>> tasks, final Z zero,
       final Reducer<Z, T> reducer, Optional<Task<?>> predecessor) {
@@ -41,7 +39,6 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
     _reducer = reducer;
     _tasks = tasks;
     _predecessor = predecessor;
-    _name = name;
   }
 
   //TODO: when result is resolved, then tasks should be early finished, not started?

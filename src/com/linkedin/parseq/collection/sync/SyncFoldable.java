@@ -12,7 +12,7 @@ public class SyncFoldable<Z, T> implements Foldable<Z, T, RichCallable<Z>>  {
   }
 
   @Override
-  public RichCallable<Z> fold(Z zero, Reducer<Z, T> reducer) {
+  public RichCallable<Z> fold(String s, Z zero, Reducer<Z, T> reducer) {
     return new SyncFoldCallable<Z, T>(_input, zero, reducer);
   }
 

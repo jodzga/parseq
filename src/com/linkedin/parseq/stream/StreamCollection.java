@@ -99,7 +99,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
 
   //Used only for side-effects
   public Task<?> task() {
-    return foldable().fold(Optional.empty(), transduce((z, r) -> r.map(rValue -> {
+    return foldable().fold("task", Optional.empty(), transduce((z, r) -> r.map(rValue -> {
       return Step.cont(z);
     })));
   }
@@ -133,7 +133,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
 
   private Task<?> publisherTask(final PushablePublisher<TaskOrValue<R>> pushable,
       final CancellableSubscription subscription) {
-    final Task<?> fold = foldable().fold(Optional.empty(), transduce((z, r) -> {
+    final Task<?> fold = foldable().fold("toStream", Optional.empty(), transduce((z, r) -> {
         if (subscription.isCancelled()) {
           return TaskOrValue.value(Step.done(z));
         } else {

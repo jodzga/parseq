@@ -90,26 +90,26 @@ public abstract class Transducible<T, R> {
    */
 
   protected <Z, V> V fold(final Z zero, final BiFunction<Z, R, Z> op, final Foldable<Z, T, V> foldable) {
-    return foldable.fold(zero, transduce((z, e) -> e.map(eValue -> Step.cont(op.apply(z.refGet(), eValue)))));
+    return foldable.fold("fold", zero, transduce((z, e) -> e.map(eValue -> Step.cont(op.apply(z.refGet(), eValue)))));
   }
 
   protected <V> V first(final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.done(Optional.of(rValue)))));
+    return foldable.fold("first", Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.done(Optional.of(rValue)))));
   }
 
   protected <V> V last(final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.cont(Optional.of(rValue)))));
+    return foldable.fold("last", Optional.empty(), transduce((z, r) -> r.map(rValue -> Step.cont(Optional.of(rValue)))));
   }
 
   protected <V> V toList(final Foldable<List<R>, T, V> foldable) {
-    return foldable.fold(new ArrayList<R>(), transduce((z, r) -> r.map(rValue -> {
+    return foldable.fold("toList", new ArrayList<R>(), transduce((z, r) -> r.map(rValue -> {
       z.refGet().add(rValue);
       return Step.cont(z.refGet());
     })));
   }
 
   protected <V> V reduce(final BiFunction<R, R, R> op, final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), transduce((z, e) -> e.map(eValue -> {
+    return foldable.fold("reduce", Optional.empty(), transduce((z, e) -> e.map(eValue -> {
       if (z.refGet().isPresent()) {
         return Step.cont(Optional.of(op.apply(z.refGet().get(), eValue)));
       } else {
@@ -119,7 +119,7 @@ public abstract class Transducible<T, R> {
   }
 
   protected <V> V find(final Predicate<R> predicate, final Foldable<Optional<R>, T, V> foldable) {
-    return foldable.fold(Optional.empty(), transduce((z, e) -> e.map(eValue -> {
+    return foldable.fold("find", Optional.empty(), transduce((z, e) -> e.map(eValue -> {
       if (predicate.test(eValue)) {
         return Step.done(Optional.of(eValue));
       } else {
