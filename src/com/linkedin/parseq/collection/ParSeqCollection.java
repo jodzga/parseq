@@ -44,7 +44,7 @@ public interface ParSeqCollection<T> {
 
   public Task<T> last();
 
-  public Task<List<T>> all();
+  public Task<List<T>> toList();
 
   public Task<T> reduce(final BiFunction<T, T, T> op);
 
@@ -52,9 +52,7 @@ public interface ParSeqCollection<T> {
 
   public Task<Integer> count();
 
-  default public Task<?> task() {
-    return all();
-  }
+  public Task<?> task();
 
   //streaming
 

@@ -34,9 +34,9 @@ public class ParFilterExample extends AbstractExample
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
     Task<String> find =
-        Collections.par(fetchSizes)
+        Collections.fromTasks(fetchSizes)
           .filter(s -> !s.contains("google"))
-          .flatMap(z -> Collections.par(fetchList(httpClient, urls))
+          .flatMap(z -> Collections.fromTasks(fetchList(httpClient, urls))
                 .filter(s -> s.contains("twitter")))
           .find(s -> s.contains("twitter"));
 

@@ -229,10 +229,16 @@ public class StreamCollection<T, R> extends Transducible<T, R> {
     return result.map("checkEmpty", Transducible::checkEmpty);
   }
 
-  public static <A> StreamCollection<A, A> fromIterable(final Iterable<A> iterable) {
-    IterablePublisher<A> publisher = new IterablePublisher<A>(iterable);
+  public static <A> StreamCollection<A, A> fromValues(final Iterable<A> iterable) {
+    IterablePublisher<A, A> publisher = new ValuesPublisher<A>(iterable);
     return new StreamCollection<A, A>(publisher, Transducer.identity(),
-        Optional.of(Tasks.action("iterator", publisher::run)));
+        Optional.of(Tasks.action("values", publisher::run)));
+  }
+
+  public static <A> StreamCollection<A, A> fromTasks(final Iterable<Task<A>> iterable) {
+    IterablePublisher<Task<A>, A> publisher = new TasksPublisher<A>(iterable);
+    return new StreamCollection<A, A>(publisher, Transducer.identity(),
+        Optional.of(Tasks.action("tasks", publisher::run)));
   }
 
 }

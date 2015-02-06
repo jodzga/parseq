@@ -52,7 +52,7 @@ public class TestAsyncCallableTask extends BaseEngineTest
       }));
     }
 
-    final Task<?> par = Collections.par(tasks).task();
+    final Task<?> par = Collections.fromTasks(tasks).task();
     getEngine().run(par);
 
     assertTrue(par.await(5, TimeUnit.SECONDS));

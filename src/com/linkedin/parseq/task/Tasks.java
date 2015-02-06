@@ -16,9 +16,6 @@
 
 package com.linkedin.parseq.task;
 
-import java.util.concurrent.Callable;
-
-import com.linkedin.parseq.collection.sync.RichCallable;
 
 /**
  * This class provides a set of factory methods for create common

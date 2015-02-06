@@ -33,8 +33,8 @@ public class SyncCollectionFlatMapExample extends AbstractExample
     List<String> paths = Arrays.asList("/p1", "/p2");
 
 
-    Task<String> task = Collections.fromIterable(urls)
-      .flatMap(base -> (StreamCollection<?, String>)Collections.fromIterable(paths)
+    Task<String> task = Collections.fromValues(urls)
+      .flatMap(base -> (StreamCollection<?, String>)Collections.fromValues(paths)
           .map(path -> base + path)
           .mapTask(url -> fetchUrl(httpClient, url)))
       .take(3)

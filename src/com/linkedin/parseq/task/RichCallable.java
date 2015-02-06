@@ -1,4 +1,4 @@
-package com.linkedin.parseq.collection.sync;
+package com.linkedin.parseq.task;
 
 import java.util.function.Consumer;
 import java.util.function.Function;

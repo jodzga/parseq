@@ -181,7 +181,7 @@ public class TestTasks extends BaseEngineTest
     }
 
     // final task runs all the tasks in parallel
-    final Task<?> timeoutTask = Collections.par(tasks).all();
+    final Task<?> timeoutTask = Collections.fromTasks(tasks).toList();
 
     getEngine().run(timeoutTask);
 

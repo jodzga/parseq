@@ -33,7 +33,7 @@ public class FanOutExample extends AbstractExample
 
     final MockService<String> httpClient = getService();
 
-    Task<?> parFetch = Collections.fromIterable(urls)
+    Task<?> parFetch = Collections.fromValues(urls)
         .mapTask(url -> fetchUrl(httpClient, url))
         .forEach(System.out::println)
         .task();

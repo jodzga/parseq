@@ -31,7 +31,7 @@ public class FParFilterExample extends AbstractExample
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
     Task<String> find =
-        Collections.fromIterable(urls)
+        Collections.fromValues(urls)
           .mapTask(url -> fetchUrl(httpClient, url)
                         .withTimeout(200, TimeUnit.MILLISECONDS)
                         .recover("default", t -> ""))
