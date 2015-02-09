@@ -7,7 +7,6 @@ import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromisePropagator;
 import com.linkedin.parseq.promise.PromiseResolvedException;
-import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.Settable;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -23,21 +22,45 @@ import com.linkedin.parseq.promise.SettablePromise;
 //TODO zmienic w jaki sposob task jest hidded - nie przez inheritance
 public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
-  private static final String FUSION_TRACE_SYMBOL = " - ";
+  private static final String FUSION_TRACE_SYMBOL = " => ";
 
   private final PromisePropagator<S, T> _propagator;
   private final Task<S> _task;
 
   private FusionTask(final String name, final Task<S> task, final PromisePropagator<S, T> propagator) {
     super(name);
-    PromisePropagator<S, T>
-    _propagator = fulfilling(propagator);
+    _propagator = propagator;
     _task = task;
   }
 
-  private PromisePropagator<S, T> fulfilling(PromisePropagator<S, T> propagator) {
+  private PromisePropagator<S, T> fulfilling(final PromisePropagator<S, T> propagator) {
     return (src, dest) -> {
-      
+      propagator.accept(src, new Settable<T>() {
+
+        @Override
+        public void done(final T value) throws PromiseResolvedException {
+          try {
+            final SettablePromise<T> settable = FusionTask.this.getSettableDelegate();
+            if (!settable.isDone()) {
+              settable.done(value);
+            }
+          } finally {
+            dest.done(value);
+          }
+        }
+
+        @Override
+        public void fail(final Throwable error) throws PromiseResolvedException {
+          try {
+            final SettablePromise<T> settable = FusionTask.this.getSettableDelegate();
+            if (!settable.isDone()) {
+              settable.fail(error);
+            }
+          } finally {
+            dest.fail(error);
+          }
+        }
+      });
     };
   }
 
@@ -52,24 +75,24 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
   
   @Override
   public <R> FusionTask<?, R> apply(String desc, PromisePropagator<T,R> propagator) {
-    return new FusionTask<S, R>(desc, _task, _propagator.compose(propagator));
+    return fuse(desc, _task, fulfilling(_propagator).compose(propagator));
   };
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {
-    return fuse(getName() + FUSION_TRACE_SYMBOL + desc, _task, _propagator.map(f));
+    return fuse(getName() + FUSION_TRACE_SYMBOL + desc, _task, fulfilling(_propagator).map(f));
   }
 
   @Override
   public Task<T> andThen(final String desc, final Consumer<T> consumer) {
     return fuse(getName() + FUSION_TRACE_SYMBOL + desc, _task,
-        _propagator.andThen(consumer));
+        fulfilling(_propagator).andThen(consumer));
   }
 
   @Override
   public Task<T> recover(final String desc, final Function<Throwable, T> f) {
     return fuse(getName() +FUSION_TRACE_SYMBOL + desc, _task, (src, dst) -> {
-      _propagator.accept(src, new Settable<T>() {
+      fulfilling(_propagator).accept(src, new Settable<T>() {
         @Override
         public void done(T value) throws PromiseResolvedException {
           dst.done(value);
