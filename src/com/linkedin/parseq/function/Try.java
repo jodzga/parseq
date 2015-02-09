@@ -2,7 +2,7 @@ package com.linkedin.parseq.function;
 
 public interface Try<T> {
 
-  public enum ResultType {
+  public enum Result {
     success,
     failure
   }
@@ -13,6 +13,6 @@ public interface Try<T> {
 
   Throwable getError();
 
-  ResultType resultType();
+  Result result();
 
 }

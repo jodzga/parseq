@@ -29,13 +29,6 @@ public class Tasks
   private Tasks() {}
 
   /**
-   * TODO
-   * Czy te wszystkie sa jeszcze relevant???
-   * Wyglada na to, ze nie, bo mozna po prostu uzyc kombinatorow na tasku
-   */
-
-
-  /**
    * Creates a new {@link Task} that have a value of type Void. Because the
    * returned task returns no value, it is typically used to produce side-effects.
    *
@@ -52,14 +45,14 @@ public class Tasks
     return new CallableTask<T>(name, callable);
   }
 
-  public static <T1, T2> Par2Task<T1, T2> par(final Task<T1> task1,
+  public static <T1, T2> Tuple2Task<T1, T2> par(final Task<T1> task1,
                                               final Task<T2> task2) {
     return new Par2Task<T1, T2>("par(" + task1.getName() + ", " +
                                          task2.getName() + ")", task1,
                                                                 task2);
   }
 
-  public static <T1, T2, T3> Par3Task<T1, T2, T3> par(final Task<T1> task1,
+  public static <T1, T2, T3> Tuple3Task<T1, T2, T3> par(final Task<T1> task1,
                                                       final Task<T2> task2,
                                                       final Task<T3> task3) {
     return new Par3Task<T1, T2, T3>("par(" + task1.getName() + ", " +
