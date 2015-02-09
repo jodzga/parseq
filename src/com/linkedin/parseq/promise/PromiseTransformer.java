@@ -45,4 +45,12 @@ public class PromiseTransformer<S, T> implements PromisePropagator<S, T> {
   public <R> PromiseTransformer<S, R> map(final Function<? super T, ? extends R> f) {
     return new PromiseTransformer<S, R>(_transform.andThen(f));
   }
+  
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  private static final PromiseTransformer IDENTITY = new PromiseTransformer(Function.identity());
+  
+  @SuppressWarnings("unchecked")
+  public static <R> PromiseTransformer<R, R> identity() {
+    return (PromiseTransformer<R, R>)IDENTITY;
+  }
 }

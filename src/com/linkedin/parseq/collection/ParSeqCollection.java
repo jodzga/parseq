@@ -1,6 +1,7 @@
 package com.linkedin.parseq.collection;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -27,7 +28,9 @@ public interface ParSeqCollection<T> {
   public ParSeqCollection<T> drop(final int n);
 
   public ParSeqCollection<T> dropWhile(final Predicate<T> predicate);
-
+  
+  public ParSeqCollection<T> within(final long time, final TimeUnit unit);
+  
   public <A> ParSeqCollection<A> mapTask(final Function<T, Task<A>> f);
 
   public <A> ParSeqCollection<A> flatMap(final Function<T, ParSeqCollection<A>> f);
@@ -51,7 +54,7 @@ public interface ParSeqCollection<T> {
   public Task<Integer> count();
 
   public Task<?> task();
-
+  
   //streaming
 
   //TODO

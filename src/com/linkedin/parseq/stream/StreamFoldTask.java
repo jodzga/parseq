@@ -189,8 +189,10 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
     public void before(Context context) {
       final Task<?> withinTask = Tasks.action("withinTimer", () -> {
         if (_committed.compareAndSet(false, true)) {
-          //
-          _streamingComplete = true;
+          if (!_streamingComplete) {
+            _streamingComplete = true;
+            _subscription.cancel();
+          }
           _result.done(_partialResult);
         }
       });

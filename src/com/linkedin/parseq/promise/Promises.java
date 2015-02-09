@@ -16,7 +16,6 @@
 
 package com.linkedin.parseq.promise;
 
-import java.util.function.Function;
 
 /**
  * This class provides a set of static helper methods that make it easier to
@@ -85,6 +84,6 @@ public class Promises
   public static <T> void propagateResult(final Promise<T> source,
                                          final SettablePromise<T> dest)
   {
-    source.addListener(new TransformingPromiseListener<T, T>(dest, new PromiseTransformer<T, T>(Function.identity())));
+    source.addListener(new TransformingPromiseListener<T, T>(dest, PromiseTransformer.identity()));
   }
 }

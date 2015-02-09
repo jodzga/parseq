@@ -2,6 +2,7 @@ package com.linkedin.parseq.stream;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -251,13 +252,13 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
 
   public static <A> ParSeqCollection<A> fromValues(final Iterable<A> iterable) {
     IterablePublisher<A, A> publisher = new ValuesPublisher<A>(iterable);
-    return new StreamCollection<A, A>(publisher, Transducer.identity(),
+    return new StreamCollection<>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("values", publisher::run)));
   }
 
   public static <A> ParSeqCollection<A> fromTasks(final Iterable<Task<A>> iterable) {
     IterablePublisher<Task<A>, A> publisher = new TasksPublisher<A>(iterable);
-    return new StreamCollection<A, A>(publisher, Transducer.identity(),
+    return new StreamCollection<>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("tasks", publisher::run)));
   }
 
@@ -271,6 +272,14 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
   public Task<Integer> count() {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public ParSeqCollection<R> within(long time, TimeUnit unit) {
+    CancellableSubscription subscription = new CancellableSubscription();
+    final PushablePublisher<TaskOrValue<R>> publisher = new PushablePublisher<TaskOrValue<R>>(subscription);
+    Task<?> task = publisherTask(publisher, subscription).within(time, unit);
+    return new StreamCollection<>(publisher, Transducer.identity(), Optional.of(task));
   }
 
 }

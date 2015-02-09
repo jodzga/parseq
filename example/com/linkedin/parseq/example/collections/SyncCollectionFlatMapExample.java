@@ -5,6 +5,7 @@ import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.linkedin.parseq.collection.Collections;
 import com.linkedin.parseq.engine.Engine;
@@ -35,8 +36,8 @@ public class SyncCollectionFlatMapExample extends AbstractExample
       .flatMap(base -> Collections.fromValues(paths)
           .map(path -> base + path)
           .mapTask(url -> fetchUrl(httpClient, url)))
-      .take(3)
       .reduce((a, b) -> a + "\n" + b)
+      .recover(e -> "error: " + e.toString())
       .andThen(System.out::println);
 
     engine.run(task);

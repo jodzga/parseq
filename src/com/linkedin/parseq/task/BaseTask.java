@@ -374,7 +374,7 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
     return true;
   }
 
-  private SettablePromise<T> getSettableDelegate()
+  protected SettablePromise<T> getSettableDelegate()
   {
     return (SettablePromise<T>)super.getDelegate();
   }

@@ -7,6 +7,7 @@ import com.linkedin.parseq.internal.SystemHiddenTask;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromisePropagator;
 import com.linkedin.parseq.promise.PromiseResolvedException;
+import com.linkedin.parseq.promise.PromiseTransformer;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.Settable;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -24,13 +25,20 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
   private static final String FUSION_TRACE_SYMBOL = " - ";
 
-  private PromisePropagator<S, T> _propagator;
+  private final PromisePropagator<S, T> _propagator;
   private final Task<S> _task;
 
-  public FusionTask(final String name, final Task<S> task, final PromisePropagator<S, T> propagator) {
+  private FusionTask(final String name, final Task<S> task, final PromisePropagator<S, T> propagator) {
     super(name);
-    _propagator = propagator;
+    PromisePropagator<S, T>
+    _propagator = fulfilling(propagator);
     _task = task;
+  }
+
+  private PromisePropagator<S, T> fulfilling(PromisePropagator<S, T> propagator) {
+    return (src, dest) -> {
+      
+    };
   }
 
   @SuppressWarnings("unchecked")
@@ -41,7 +49,7 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
       return new FusionTask<S, T>(name, task, propagator);
     }
   }
-
+  
   @Override
   public <R> FusionTask<?, R> apply(String desc, PromisePropagator<T,R> propagator) {
     return new FusionTask<S, R>(desc, _task, _propagator.compose(propagator));
@@ -49,18 +57,18 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
 
   @Override
   public <R> Task<R> map(final String desc, final Function<T,R> f) {
-    return new FusionTask<S, R>(getName() + FUSION_TRACE_SYMBOL + desc, _task, _propagator.map(f));
+    return fuse(getName() + FUSION_TRACE_SYMBOL + desc, _task, _propagator.map(f));
   }
 
   @Override
   public Task<T> andThen(final String desc, final Consumer<T> consumer) {
-    return new FusionTask<S, T>(getName() + FUSION_TRACE_SYMBOL + desc, _task,
+    return fuse(getName() + FUSION_TRACE_SYMBOL + desc, _task,
         _propagator.andThen(consumer));
   }
 
   @Override
   public Task<T> recover(final String desc, final Function<Throwable, T> f) {
-    return new FusionTask<S, T>(getName() +FUSION_TRACE_SYMBOL + desc, _task, (src, dst) -> {
+    return fuse(getName() +FUSION_TRACE_SYMBOL + desc, _task, (src, dst) -> {
       _propagator.accept(src, new Settable<T>() {
         @Override
         public void done(T value) throws PromiseResolvedException {
