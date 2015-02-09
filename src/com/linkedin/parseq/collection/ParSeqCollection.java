@@ -56,5 +56,15 @@ public interface ParSeqCollection<T> {
 
   //TODO
   //public void subscribe(Subscriber<T> subscriber);
+  
+  /**
+   * other operations proposal:
+   *
+   * partition
+   * split
+   * groupBy
+   *
+   * grouped(n)
+   */
 
 }

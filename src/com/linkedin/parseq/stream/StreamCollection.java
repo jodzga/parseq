@@ -29,7 +29,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     _predecessor = predecessor;
   }
 
-  protected <Z> Foldable<Z, T, Task<Z>> foldable() {
+  private <Z> Foldable<Z, T, Task<Z>> foldable() {
     return new StreamFoldable<Z, T>(_source, _predecessor);
   }
 
@@ -41,31 +41,38 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     return createStreamCollection(_source, transducer);
   }
 
-  public <A> StreamCollection<T, A> map(final Function<R, A> f) {
+  @Override
+  public <A> ParSeqCollection<A> map(final Function<R, A> f) {
     return map(f, this::create);
   }
 
-  public StreamCollection<T, R> forEach(final Consumer<R> consumer) {
+  @Override
+  public ParSeqCollection<R> forEach(final Consumer<R> consumer) {
     return forEach(consumer, this::create);
   }
 
-  public StreamCollection<T, R> filter(final Predicate<R> predicate) {
+  @Override
+  public ParSeqCollection<R> filter(final Predicate<R> predicate) {
     return filter(predicate, this::create);
   }
 
-  public StreamCollection<T, R> take(final int n) {
+  @Override
+  public ParSeqCollection<R> take(final int n) {
     return take(n, this::create);
   }
 
-  public StreamCollection<T, R> takeWhile(final Predicate<R> predicate) {
+  @Override
+  public ParSeqCollection<R> takeWhile(final Predicate<R> predicate) {
     return takeWhile(predicate, this::create);
   }
 
-  public StreamCollection<T, R> drop(final int n) {
+  @Override
+  public ParSeqCollection<R> drop(final int n) {
     return drop(n, this::create);
   }
 
-  public StreamCollection<T, R> dropWhile(final Predicate<R> predicate) {
+  @Override
+  public ParSeqCollection<R> dropWhile(final Predicate<R> predicate) {
     return dropWhile(predicate, this::create);
   }
 
@@ -73,26 +80,32 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
    * Foldings:
    */
 
+  @Override
   public <Z> Task<Z> fold(final Z zero, final BiFunction<Z, R, Z> op) {
     return fold(zero, op, foldable());
   }
 
+  @Override
   public Task<R> first() {
     return checkEmptyAsync(first(foldable()));
   }
 
+  @Override
   public Task<R> last() {
     return checkEmptyAsync(last(foldable()));
   }
 
+  @Override
   public Task<List<R>> toList() {
     return toList(foldable());
   }
 
+  @Override
   public Task<R> reduce(final BiFunction<R, R, R> op) {
     return checkEmptyAsync(reduce(op, foldable()));
   }
 
+  @Override
   public Task<R> find(final Predicate<R> predicate) {
     return checkEmptyAsync(find(predicate, foldable()));
   }
@@ -100,13 +113,15 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
   private final TaskOrValue<Step<Object>> CONTINUE = TaskOrValue.value(Step.cont(Optional.empty()));
 
   //Used only for side-effects
+  @Override
   public Task<?> task() {
     return foldable().fold("task", Optional.empty(), transduce((z, r) -> r.map(rValue -> {
       return Step.cont(z);
     })));
   }
 
-  public <A> StreamCollection<T, A> mapTask(final Function<R, Task<A>> f) {
+  @Override
+  public <A> ParSeqCollection<A> mapTask(final Function<R, Task<A>> f) {
     return create(_transducer.map(r -> r.mapTask(f)));
   }
 
@@ -155,91 +170,92 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     return fold;
   }
 
-//  public <A> StreamCollection<GroupedStreamCollection<A, R, R>, GroupedStreamCollection<A, R, R>> groupBy(final Function<R, A> classifier) {
-//    return null;
-//    final Publisher<R> that = this;
-//    return new Publisher<GroupedStreamCollection<A, R, R>>() {
-//      private int groupCount = 0;
+  @Override
+  public <K> ParSeqCollection<GroupedAsyncCollection<K, R>> groupBy(Function<R, K> classifier) {
+//  final Publisher<R> that = this;
+//  return new Publisher<GroupedStreamCollection<A, R, R>>() {
+//    private int groupCount = 0;
 //
-//      @Override
-//      public void subscribe(final AckingSubscriber<GroupedStreamCollection<A, R, R>> subscriber) {
+//    @Override
+//    public void subscribe(final AckingSubscriber<GroupedStreamCollection<A, R, R>> subscriber) {
 //
-//        final Map<A, PushablePublisher<R>> publishers = new HashMap<A, PushablePublisher<R>>();
-//        final Set<A> calcelledGroups = new HashSet<A>();
+//      final Map<A, PushablePublisher<R>> publishers = new HashMap<A, PushablePublisher<R>>();
+//      final Set<A> calcelledGroups = new HashSet<A>();
 //
-//        that.subscribe(new AckingSubscriber<R>() {
+//      that.subscribe(new AckingSubscriber<R>() {
 //
-//          @Override
-//          public void onNext(final AckValue<R> element) {
-//            /**
-//             * TODO
-//             * Update documentation about ack: it is not a mechanism for backpressure:
-//             * - is backpressure relevant problem for a processing finite streams?
-//             * - ack is used to provide Seq semantics
-//             *
-//             * add try/catch to all those methods
-//             */
-//            final A group = classifier.apply(element.get());
-//            if (calcelledGroups.contains(group)) {
-//              element.ack(FlowControl.cont);
-//            } else {
-//              PushablePublisher<R> pub = publishers.get(group);
-//              if (pub == null) {
-//                final CancellableSubscription subscription = new CancellableSubscription();
-//                pub = new PushablePublisher<R>(() -> {
-//                  subscription.cancel();
-//                  calcelledGroups.add(group);
-//                });
-//                publishers.put(group, pub);
-//                subscriber.onNext(new AckValue<>(new GroupedStreamCollection<A, R, R>(group, pub, Transducer.identity()), Ack.NO_OP));
-//                groupCount++;
-//              }
-//              //at this point subscription might have been already cancelled
-//              if (!calcelledGroups.contains(group)) {
-//                pub.next(element);
-//              }
+//        @Override
+//        public void onNext(final AckValue<R> element) {
+//          /**
+//           * TODO
+//           * Update documentation about ack: it is not a mechanism for backpressure:
+//           * - is backpressure relevant problem for a processing finite streams?
+//           * - ack is used to provide Seq semantics
+//           *
+//           * add try/catch to all those methods
+//           */
+//          final A group = classifier.apply(element.get());
+//          if (calcelledGroups.contains(group)) {
+//            element.ack(FlowControl.cont);
+//          } else {
+//            PushablePublisher<R> pub = publishers.get(group);
+//            if (pub == null) {
+//              final CancellableSubscription subscription = new CancellableSubscription();
+//              pub = new PushablePublisher<R>(() -> {
+//                subscription.cancel();
+//                calcelledGroups.add(group);
+//              });
+//              publishers.put(group, pub);
+//              subscriber.onNext(new AckValue<>(new GroupedStreamCollection<A, R, R>(group, pub, Transducer.identity()), Ack.NO_OP));
+//              groupCount++;
+//            }
+//            //at this point subscription might have been already cancelled
+//            if (!calcelledGroups.contains(group)) {
+//              pub.next(element);
 //            }
 //          }
+//        }
 //
-//          @Override
-//          public void onComplete(final int totalTasks) {
-//            subscriber.onComplete(groupCount);
-//            for (PushablePublisher<R> pub: publishers.values()) {
-//              pub.complete();
-//            }
+//        @Override
+//        public void onComplete(final int totalTasks) {
+//          subscriber.onComplete(groupCount);
+//          for (PushablePublisher<R> pub: publishers.values()) {
+//            pub.complete();
 //          }
+//        }
 //
-//          @Override
-//          public void onError(Throwable cause) {
-//            subscriber.onError(cause);
-//            for (PushablePublisher<R> pub: publishers.values()) {
-//              pub.error(cause);
-//            }
+//        @Override
+//        public void onError(Throwable cause) {
+//          subscriber.onError(cause);
+//          for (PushablePublisher<R> pub: publishers.values()) {
+//            pub.error(cause);
 //          }
+//        }
 //
-//          @Override
-//          public void onSubscribe(Subscription subscription) {
-//            //we would be able to cancel stream if all groups cancelled their streams
-//            //unfortunately we can't cancel stream because we don't know
-//            //what elements are coming in the stream so we don't know list of all groups
-//          }
+//        @Override
+//        public void onSubscribe(Subscription subscription) {
+//          //we would be able to cancel stream if all groups cancelled their streams
+//          //unfortunately we can't cancel stream because we don't know
+//          //what elements are coming in the stream so we don't know list of all groups
+//        }
 //
-//        });
-//      }
-//    }.collection();
-//  }
+//      });
+//    }
+//  }.collection();
+    return null;
+  }
 
   protected static final <R> Task<R> checkEmptyAsync(Task<Optional<R>> result) {
     return result.map("checkEmpty", Transducible::checkEmpty);
   }
 
-  public static <A> StreamCollection<A, A> fromValues(final Iterable<A> iterable) {
+  public static <A> ParSeqCollection<A> fromValues(final Iterable<A> iterable) {
     IterablePublisher<A, A> publisher = new ValuesPublisher<A>(iterable);
     return new StreamCollection<A, A>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("values", publisher::run)));
   }
 
-  public static <A> StreamCollection<A, A> fromTasks(final Iterable<Task<A>> iterable) {
+  public static <A> ParSeqCollection<A> fromTasks(final Iterable<Task<A>> iterable) {
     IterablePublisher<Task<A>, A> publisher = new TasksPublisher<A>(iterable);
     return new StreamCollection<A, A>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("tasks", publisher::run)));
@@ -253,12 +269,6 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
 
   @Override
   public Task<Integer> count() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public <K> ParSeqCollection<GroupedAsyncCollection<K, R>> groupBy(Function<R, K> classifier) {
     // TODO Auto-generated method stub
     return null;
   }

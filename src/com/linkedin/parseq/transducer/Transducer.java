@@ -29,10 +29,10 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
   default Transducer<T, R> filter(final Predicate<R> predicate) {
     return fr -> apply((z, r) -> r.flatMap(rValue -> {
         if (predicate.test(rValue)) {
-          return fr.apply(z, TaskOrValue.value(rValue));
-        } else {
-          return TaskOrValue.value(Step.cont(z));
-        }
+            return fr.apply(z, TaskOrValue.value(rValue));
+          } else {
+            return TaskOrValue.value(Step.cont(z.refGet()));
+          }
       }));
   }
 
@@ -69,7 +69,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
       final Counter counter = new Counter(0);
       return fr -> apply((z, r) -> r.flatMap( rValue -> {
         if (counter.inc() < n) {
-          return TaskOrValue.value(Step.cont(z));
+          return TaskOrValue.value(Step.cont(z.refGet()));
         } else {
           return fr.apply(z, TaskOrValue.value(rValue));
         }
@@ -84,7 +84,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
       if (predicate.test(rValue)) {
         return fr.apply(z, TaskOrValue.value(rValue));
       } else {
-        return TaskOrValue.value(Step.done(z));
+        return TaskOrValue.value(Step.done(z.refGet()));
       }
     }));
   }
@@ -104,7 +104,7 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
     return fr -> apply((z, r) -> r.flatMap(rValue -> {
       if (!trap.closed()) {
         if (predicate.test(rValue)) {
-          return TaskOrValue.value(Step.cont(z));
+          return TaskOrValue.value(Step.cont(z.refGet()));
         } else {
           trap.trigger();
         }
@@ -112,16 +112,6 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
       return fr.apply(z, TaskOrValue.value(rValue));
     }));
   }
-
-  /**
-   * other operations proposal:
-   *
-   * partition
-   * split
-   * groupBy
-   *
-   * grouped(n)
-   */
 
   @SuppressWarnings("rawtypes")
   static final Transducer IDENTITY = x -> x;
