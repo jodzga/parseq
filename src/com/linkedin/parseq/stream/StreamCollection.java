@@ -263,12 +263,6 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
   }
 
   @Override
-  public ParSeqCollection<R> withSideEffect(Consumer<R> consumer) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public Task<Integer> count() {
     // TODO Auto-generated method stub
     return null;
@@ -280,6 +274,29 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     final PushablePublisher<TaskOrValue<R>> publisher = new PushablePublisher<TaskOrValue<R>>(subscription);
     Task<?> task = publisherTask(publisher, subscription).within(time, unit);
     return new StreamCollection<>(publisher, Transducer.identity(), Optional.of(task));
+  }
+
+  @Override
+  public Task<?> subscribe(final Subscriber<R> subscriber) {
+    final CancellableSubscription subscription = new CancellableSubscription();
+    Task<?> fold = foldable().fold("stream", Optional.empty(), 
+        transduce((z, e) -> e.map(eValue -> {
+          if (!subscription.isCancelled()) {
+            subscriber.onNext(eValue);
+            return Step.cont(z);
+          } else {
+            return Step.done(z);
+          }
+        })));
+    fold.onResolve(p -> {
+      if (p.isFailed()) {
+        subscriber.onError(p.getError());
+      } else {
+        subscriber.onComplete();
+      }
+    });
+    return Tasks.action("onSubscribe", () -> subscriber.onSubscribe(subscription))
+        .andThen(fold);
   }
 
 }

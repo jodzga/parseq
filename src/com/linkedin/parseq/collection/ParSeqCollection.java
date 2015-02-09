@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.linkedin.parseq.stream.Subscriber;
 import com.linkedin.parseq.task.Task;
 
 public interface ParSeqCollection<T> {
@@ -14,8 +15,6 @@ public interface ParSeqCollection<T> {
   //transformations
 
   public <A> ParSeqCollection<A> map(final Function<T, A> f);
-
-  public ParSeqCollection<T> withSideEffect(final Consumer<T> consumer);
 
   public ParSeqCollection<T> forEach(final Consumer<T> consumer);
 
@@ -57,8 +56,7 @@ public interface ParSeqCollection<T> {
   
   //streaming
 
-  //TODO
-  //public void subscribe(Subscriber<T> subscriber);
+  public Task<?> subscribe(Subscriber<T> subscriber);
   
   /**
    * other operations proposal:
