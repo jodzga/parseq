@@ -19,7 +19,6 @@ import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.task.Tasks;
 
-//TODO implement Publisher interface for streaming
 public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqCollection<R> {
 
   private final TaskOrValue<Step<Object>> CONTINUE = TaskOrValue.value(Step.cont(Optional.empty()));
@@ -138,8 +137,6 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
       publisher.next(pushablePublisher);
       return ((AsyncCollection<?, A>)f.apply(r)).publisherTask(pushablePublisher, subscription);
     }).task();
-
-    //TODO order of onResolve?
     publisherTask.onResolve(p -> {
       if (p.isFailed()) {
         publisher.error(p.getError());
@@ -154,13 +151,13 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
   protected Task<?> publisherTask(final PushablePublisher<TaskOrValue<R>> pushable,
       final CancellableSubscription subscription) {
     final Task<?> fold = foldable().fold("toStream", Optional.empty(), transduce((z, r) -> {
-        if (subscription.isCancelled()) {
-          return TaskOrValue.value(Step.done(z));
-        } else {
-          pushable.next(r);
-          return CONTINUE;
-        }
-      }));
+      if (subscription.isCancelled()) {
+        return TaskOrValue.value(Step.done(z));
+      } else {
+        pushable.next(r);
+        return CONTINUE;
+      }
+    }));
     fold.onResolve(p -> {
       if (p.isFailed()) {
         pushable.error(p.getError());
@@ -265,7 +262,7 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
   @Override
   public Task<Integer> count() {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -279,15 +276,14 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
   @Override
   public Task<?> subscribe(final Subscriber<R> subscriber) {
     final CancellableSubscription subscription = new CancellableSubscription();
-    Task<?> fold = foldable().fold("stream", Optional.empty(), 
-        transduce((z, e) -> e.map(eValue -> {
-          if (!subscription.isCancelled()) {
-            subscriber.onNext(eValue);
-            return Step.cont(z);
-          } else {
-            return Step.done(z);
-          }
-        })));
+    Task<?> fold = foldable().fold("stream", Optional.empty(), transduce((z, e) -> e.map(eValue -> {
+      if (!subscription.isCancelled()) {
+        subscriber.onNext(eValue);
+        return Step.cont(z);
+      } else {
+        return Step.done(z);
+      }
+    })));
     fold.onResolve(p -> {
       if (p.isFailed()) {
         subscriber.onError(p.getError());
@@ -295,26 +291,25 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
         subscriber.onComplete();
       }
     });
-    return Tasks.action("onSubscribe", () -> subscriber.onSubscribe(subscription))
-        .andThen(fold);
+    return Tasks.action("onSubscribe", () -> subscriber.onSubscribe(subscription)).andThen(fold);
   }
 
   @Override
   public ParSeqCollection<R> distinct() {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Task<R> max(Comparator<? super R> comparator) {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Task<R> min(Comparator<? super R> comparator) {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
 }
