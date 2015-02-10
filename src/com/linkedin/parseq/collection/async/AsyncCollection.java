@@ -24,7 +24,7 @@ import com.linkedin.parseq.task.Tasks;
 public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqCollection<R> {
 
   private final TaskOrValue<Step<Object>> CONTINUE = TaskOrValue.value(Step.cont(Optional.empty()));
-  
+
   private final Publisher<TaskOrValue<T>> _source;
   private final Optional<Task<?>> _predecessor;
 
@@ -251,14 +251,18 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
 
   public static <A> ParSeqCollection<A> fromValues(final Iterable<A> iterable) {
     IterablePublisher<A, A> publisher = new ValuesPublisher<A>(iterable);
+    Task<?> task = Tasks.action("values", publisher::run);
+    task.onResolve(p -> publisher.complete(p));
     return new AsyncCollection<>(publisher, Transducer.identity(),
-        Optional.of(Tasks.action("values", publisher::run)));
+        Optional.of(task));
   }
 
   public static <A> ParSeqCollection<A> fromTasks(final Iterable<Task<A>> iterable) {
     IterablePublisher<Task<A>, A> publisher = new TasksPublisher<A>(iterable);
+    Task<?> task = Tasks.action("tasks", publisher::run);
+    task.onResolve(p -> publisher.complete(p));
     return new AsyncCollection<>(publisher, Transducer.identity(),
-        Optional.of(Tasks.action("tasks", publisher::run)));
+        Optional.of(task));
   }
 
   @Override
@@ -320,11 +324,13 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
         return sortedList.get();
       }
     };
+    Task<?> task = sortedList.andThen("sortedValues", l -> {
+      Collections.sort(l, comparator);
+      publisher.run();
+    });
+    task.onResolve(p -> publisher.complete(p));
     return new AsyncCollection<>(publisher, Transducer.identity(),
-        Optional.of(sortedList.andThen("sortedValues", l -> {
-          Collections.sort(l, comparator);
-          publisher.run();
-        })));
+        Optional.of(task));
   }
 
 }
