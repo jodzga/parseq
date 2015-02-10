@@ -25,6 +25,8 @@ public interface ParSeqCollection<T> {
 
   public ParSeqCollection<T> distinct();
   
+  public ParSeqCollection<T> sorted(Comparator<? super T> comparator);
+  
   public ParSeqCollection<T> takeWhile(final Predicate<T> predicate);
 
   public ParSeqCollection<T> drop(final int n);

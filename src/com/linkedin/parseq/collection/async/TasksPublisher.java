@@ -5,8 +5,16 @@ import com.linkedin.parseq.task.TaskOrValue;
 
 public class TasksPublisher<T> extends IterablePublisher<Task<T>, T> {
 
-  public TasksPublisher(final Iterable<Task<T>> iterable) {
-    super(iterable, TaskOrValue::task);
+  private final Iterable<Task<T>> _elements;
+  
+  public TasksPublisher(final Iterable<Task<T>> elements) {
+    super(TaskOrValue::task);
+    _elements = elements;
+  }
+
+  @Override
+  Iterable<Task<T>> getElements() {
+    return _elements;
   }
 
 }

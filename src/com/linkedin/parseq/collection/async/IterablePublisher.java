@@ -5,21 +5,18 @@ import java.util.function.Function;
 import com.linkedin.parseq.internal.ArgumentUtil;
 import com.linkedin.parseq.task.TaskOrValue;
 
+public abstract class IterablePublisher<A, T> implements Publisher<TaskOrValue<T>> {
 
-
-public class IterablePublisher<A, T> implements Publisher<TaskOrValue<T>> {
-
-  private final Iterable<A> _elements;
   private Subscriber<? super TaskOrValue<T>> _subscriber;
   private final Function<A, TaskOrValue<T>> _converter;
 
-  public IterablePublisher(Iterable<A> iterable, Function<A, TaskOrValue<T>> converter) {
-    ArgumentUtil.notNull(iterable, "iterable");
-    ArgumentUtil.notNull(iterable, "converter");
-    _elements = iterable;
+  public IterablePublisher(Function<A, TaskOrValue<T>> converter) {
+    ArgumentUtil.notNull(converter, "converter");
     _converter = converter;
   }
 
+  abstract Iterable<A> getElements();
+  
   @Override
   public void subscribe(final Subscriber<? super TaskOrValue<T>> subscriber) {
     ArgumentUtil.notNull(subscriber, "subscriber");
@@ -31,7 +28,7 @@ public class IterablePublisher<A, T> implements Publisher<TaskOrValue<T>> {
       CancellableSubscription subscription = new CancellableSubscription();
       _subscriber.onSubscribe(subscription);
       try {
-        for (A e : _elements) {
+        for (A e : getElements()) {
           if (!subscription.isCancelled()) {
             _subscriber.onNext(_converter.apply(e));
           }

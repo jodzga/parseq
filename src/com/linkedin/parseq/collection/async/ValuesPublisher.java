@@ -4,8 +4,16 @@ import com.linkedin.parseq.task.TaskOrValue;
 
 public class ValuesPublisher<T> extends IterablePublisher<T, T> {
 
-  public ValuesPublisher(final Iterable<T> iterable) {
-    super(iterable, TaskOrValue::value);
+  private final Iterable<T> _elements;
+  
+  public ValuesPublisher(final Iterable<T> elements) {
+    super(TaskOrValue::value);
+    _elements = elements;
+  }
+
+  @Override
+  Iterable<T> getElements() {
+    return _elements;
   }
 
 }

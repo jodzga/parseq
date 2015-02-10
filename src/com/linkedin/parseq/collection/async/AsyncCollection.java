@@ -1,6 +1,8 @@
 package com.linkedin.parseq.collection.async;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -261,8 +263,7 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
 
   @Override
   public Task<Integer> count() {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
+    return fold(0, (count, e) -> count + 1);
   }
 
   @Override
@@ -296,20 +297,34 @@ public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqC
 
   @Override
   public ParSeqCollection<R> distinct() {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
+    final HashSet<R> distinctFilter = new HashSet<>();
+    return filter(r -> distinctFilter.add(r));
   }
 
   @Override
-  public Task<R> max(Comparator<? super R> comparator) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
+  public Task<R> max(final Comparator<? super R> comparator) {
+    return reduce((a, b) -> comparator.compare(a, b) <= 0 ? b : a);
   }
 
   @Override
-  public Task<R> min(Comparator<? super R> comparator) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
+  public Task<R> min(final Comparator<? super R> comparator) {
+    return reduce((a, b) -> comparator.compare(a, b) <= 0 ? a : b);
+  }
+
+  @Override
+  public ParSeqCollection<R> sorted(final Comparator<? super R> comparator) {
+    final Task<List<R>> sortedList = toList();
+    IterablePublisher<R, R> publisher = new IterablePublisher<R, R>(TaskOrValue::value) {
+      @Override
+      Iterable<R> getElements() {
+        return sortedList.get();
+      }
+    };
+    return new AsyncCollection<>(publisher, Transducer.identity(),
+        Optional.of(sortedList.andThen("sortedValues", l -> {
+          Collections.sort(l, comparator);
+          publisher.run();
+        })));
   }
 
 }
