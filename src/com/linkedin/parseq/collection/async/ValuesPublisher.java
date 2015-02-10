@@ -1,4 +1,4 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.collection.async;
 
 import com.linkedin.parseq.task.TaskOrValue;
 

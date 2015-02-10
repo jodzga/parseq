@@ -1,5 +1,6 @@
 package com.linkedin.parseq.collection;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -7,7 +8,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.stream.Subscriber;
+import com.linkedin.parseq.collection.async.Subscriber;
 import com.linkedin.parseq.task.Task;
 
 public interface ParSeqCollection<T> {
@@ -22,6 +23,8 @@ public interface ParSeqCollection<T> {
 
   public ParSeqCollection<T> take(final int n);
 
+  public ParSeqCollection<T> distinct();
+  
   public ParSeqCollection<T> takeWhile(final Predicate<T> predicate);
 
   public ParSeqCollection<T> drop(final int n);
@@ -34,7 +37,7 @@ public interface ParSeqCollection<T> {
 
   public <A> ParSeqCollection<A> flatMap(final Function<T, ParSeqCollection<A>> f);
 
-  public <K> ParSeqCollection<GroupedAsyncCollection<K, T>> groupBy(final Function<T, K> classifier);
+  public <K> ParSeqCollection<GroupedParSeqCollection<K, T>> groupBy(final Function<T, K> classifier);
 
   //operations
 
@@ -44,6 +47,10 @@ public interface ParSeqCollection<T> {
 
   public Task<T> last();
 
+  public Task<T> max(Comparator<? super T> comparator);
+
+  public Task<T> min(Comparator<? super T> comparator);
+  
   public Task<List<T>> toList();
 
   public Task<T> reduce(final BiFunction<T, T, T> op);
@@ -58,14 +65,4 @@ public interface ParSeqCollection<T> {
 
   public Task<?> subscribe(Subscriber<T> subscriber);
   
-  /**
-   * other operations proposal:
-   *
-   * partition
-   * split
-   * groupBy
-   *
-   * grouped(n)
-   */
-
 }

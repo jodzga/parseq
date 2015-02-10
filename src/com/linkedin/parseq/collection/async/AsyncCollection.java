@@ -1,5 +1,6 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.collection.async;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -8,37 +9,39 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.collection.GroupedAsyncCollection;
+import com.linkedin.parseq.collection.GroupedParSeqCollection;
 import com.linkedin.parseq.collection.ParSeqCollection;
+import com.linkedin.parseq.collection.transducer.Foldable;
+import com.linkedin.parseq.collection.transducer.Transducer;
+import com.linkedin.parseq.collection.transducer.Transducible;
+import com.linkedin.parseq.collection.transducer.Reducer.Step;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.task.Tasks;
-import com.linkedin.parseq.transducer.Foldable;
-import com.linkedin.parseq.transducer.Reducer.Step;
-import com.linkedin.parseq.transducer.Transducer;
-import com.linkedin.parseq.transducer.Transducible;
 
 //TODO implement Publisher interface for streaming
-public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeqCollection<R> {
+public class AsyncCollection<T, R> extends Transducible<T, R> implements ParSeqCollection<R> {
 
+  private final TaskOrValue<Step<Object>> CONTINUE = TaskOrValue.value(Step.cont(Optional.empty()));
+  
   private final Publisher<TaskOrValue<T>> _source;
   private final Optional<Task<?>> _predecessor;
 
-  protected StreamCollection(Publisher<TaskOrValue<T>> source, Transducer<T, R> transducer, Optional<Task<?>> predecessor) {
+  protected AsyncCollection(Publisher<TaskOrValue<T>> source, Transducer<T, R> transducer, Optional<Task<?>> predecessor) {
     super(transducer);
     _source = source;
     _predecessor = predecessor;
   }
 
   private <Z> Foldable<Z, T, Task<Z>> foldable() {
-    return new StreamFoldable<Z, T>(_source, _predecessor);
+    return new AsyncFoldable<Z, T>(_source, _predecessor);
   }
 
-  private <A, B> StreamCollection<A, B> createStreamCollection(Publisher<TaskOrValue<A>> source, Transducer<A, B> transducer) {
-    return new StreamCollection<A, B>(source, transducer, _predecessor);
+  private <A, B> AsyncCollection<A, B> createStreamCollection(Publisher<TaskOrValue<A>> source, Transducer<A, B> transducer) {
+    return new AsyncCollection<A, B>(source, transducer, _predecessor);
   }
 
-  private <B> StreamCollection<T, B> create(Transducer<T, B> transducer) {
+  private <B> AsyncCollection<T, B> create(Transducer<T, B> transducer) {
     return createStreamCollection(_source, transducer);
   }
 
@@ -111,9 +114,6 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     return checkEmptyAsync(find(predicate, foldable()));
   }
 
-  private final TaskOrValue<Step<Object>> CONTINUE = TaskOrValue.value(Step.cont(Optional.empty()));
-
-  //Used only for side-effects
   @Override
   public Task<?> task() {
     return foldable().fold("task", Optional.empty(), transduce((z, r) -> r.map(rValue -> {
@@ -136,7 +136,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     Task<?> publisherTask = mapTask(r -> {
       final PushablePublisher<TaskOrValue<A>> pushablePublisher = new PushablePublisher<TaskOrValue<A>>(subscription);
       publisher.next(pushablePublisher);
-      return ((StreamCollection<?, A>)f.apply(r)).publisherTask(pushablePublisher, subscription);
+      return ((AsyncCollection<?, A>)f.apply(r)).publisherTask(pushablePublisher, subscription);
     }).task();
 
     //TODO order of onResolve?
@@ -148,7 +148,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
       }
     });
 
-    return new StreamCollection<A, A>(Publisher.flatten(publisher), Transducer.identity(), Optional.of(publisherTask));
+    return new AsyncCollection<A, A>(Publisher.flatten(publisher), Transducer.identity(), Optional.of(publisherTask));
   }
 
   protected Task<?> publisherTask(final PushablePublisher<TaskOrValue<R>> pushable,
@@ -172,7 +172,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
   }
 
   @Override
-  public <K> ParSeqCollection<GroupedAsyncCollection<K, R>> groupBy(Function<R, K> classifier) {
+  public <K> ParSeqCollection<GroupedParSeqCollection<K, R>> groupBy(Function<R, K> classifier) {
 //  final Publisher<R> that = this;
 //  return new Publisher<GroupedStreamCollection<A, R, R>>() {
 //    private int groupCount = 0;
@@ -252,13 +252,13 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
 
   public static <A> ParSeqCollection<A> fromValues(final Iterable<A> iterable) {
     IterablePublisher<A, A> publisher = new ValuesPublisher<A>(iterable);
-    return new StreamCollection<>(publisher, Transducer.identity(),
+    return new AsyncCollection<>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("values", publisher::run)));
   }
 
   public static <A> ParSeqCollection<A> fromTasks(final Iterable<Task<A>> iterable) {
     IterablePublisher<Task<A>, A> publisher = new TasksPublisher<A>(iterable);
-    return new StreamCollection<>(publisher, Transducer.identity(),
+    return new AsyncCollection<>(publisher, Transducer.identity(),
         Optional.of(Tasks.action("tasks", publisher::run)));
   }
 
@@ -273,7 +273,7 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     CancellableSubscription subscription = new CancellableSubscription();
     final PushablePublisher<TaskOrValue<R>> publisher = new PushablePublisher<TaskOrValue<R>>(subscription);
     Task<?> task = publisherTask(publisher, subscription).within(time, unit);
-    return new StreamCollection<>(publisher, Transducer.identity(), Optional.of(task));
+    return new AsyncCollection<>(publisher, Transducer.identity(), Optional.of(task));
   }
 
   @Override
@@ -297,6 +297,24 @@ public class StreamCollection<T, R> extends Transducible<T, R> implements ParSeq
     });
     return Tasks.action("onSubscribe", () -> subscriber.onSubscribe(subscription))
         .andThen(fold);
+  }
+
+  @Override
+  public ParSeqCollection<R> distinct() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Task<R> max(Comparator<? super R> comparator) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Task<R> min(Comparator<? super R> comparator) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

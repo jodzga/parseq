@@ -1,4 +1,4 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.collection.async;
 
 import java.util.function.Function;
 

@@ -1,4 +1,4 @@
-package com.linkedin.parseq.transducer;
+package com.linkedin.parseq.collection.transducer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.linkedin.parseq.transducer.Reducer.Step;
+import com.linkedin.parseq.collection.transducer.Reducer.Step;
 
 /**
  * TODO merge this back to the single implementation
@@ -128,17 +128,4 @@ public abstract class Transducible<T, R> {
     })));
   }
 
-  //TODO subscribe based API: e.g. all(Subscriber<T>) and first(Subscriber<T>) both can be called onError()
-
-  /**
-   * distinct
-   * sort
-   * group by
-   * partition
-   * split
-   * buffering (time and count)
-   *
-   * functions which take simplified subscriber e.g.
-   * all(Subscriber<T>)
-   */
 }

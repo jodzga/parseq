@@ -1,11 +1,11 @@
-package com.linkedin.parseq.transducer;
+package com.linkedin.parseq.collection.transducer;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.linkedin.parseq.collection.transducer.Reducer.Step;
 import com.linkedin.parseq.task.TaskOrValue;
-import com.linkedin.parseq.transducer.Reducer.Step;
 import com.linkedin.parseq.util.Integers;
 
 @FunctionalInterface

@@ -1,4 +1,4 @@
-package com.linkedin.parseq.transducer;
+package com.linkedin.parseq.collection.transducer;
 
 public enum FlowControl {
   cont,  //continue

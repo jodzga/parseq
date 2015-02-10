@@ -1,10 +1,13 @@
-package com.linkedin.parseq.stream;
+package com.linkedin.parseq.collection.async;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import com.linkedin.parseq.collection.transducer.Reducer;
+import com.linkedin.parseq.collection.transducer.Ref;
+import com.linkedin.parseq.collection.transducer.Reducer.Step;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -15,14 +18,11 @@ import com.linkedin.parseq.task.Priority;
 import com.linkedin.parseq.task.Task;
 import com.linkedin.parseq.task.TaskOrValue;
 import com.linkedin.parseq.task.Tasks;
-import com.linkedin.parseq.transducer.Reducer;
-import com.linkedin.parseq.transducer.Reducer.Step;
-import com.linkedin.parseq.transducer.Ref;
 
 /**
  * @author Jaroslaw Odzga (jodzga@linkedin.com)
  */
-public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
+public class AsyncFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
 
   private Publisher<TaskOrValue<T>> _tasks;
   private boolean _streamingComplete = false;
@@ -32,7 +32,7 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
   private final Reducer<Z, T> _reducer;
   private final Optional<Task<?>> _predecessor;
 
-  public StreamFoldTask(final String name, final Publisher<TaskOrValue<T>> tasks, final Z zero,
+  public AsyncFoldTask(final String name, final Publisher<TaskOrValue<T>> tasks, final Z zero,
       final Reducer<Z, T> reducer, Optional<Task<?>> predecessor) {
     super(name);
     _partialResult = zero;
@@ -69,14 +69,14 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
 
       private void onNextValue(TaskOrValue<T> tValue) {
         try {
-          TaskOrValue<Step<Z>> step = _reducer.apply(StreamFoldTask.this, tValue);
+          TaskOrValue<Step<Z>> step = _reducer.apply(AsyncFoldTask.this, tValue);
           if (step.isTask()) {
             _pending++;
             scheduleTask(fusedPropgatingTask("reduce", step.getTask(),
                 s -> {
                   _pending--;
                   onNextStep(s);
-                }), context, StreamFoldTask.this);
+                }), context, AsyncFoldTask.this);
           } else {
             onNextStep(step.getValue());
           }
@@ -93,7 +93,7 @@ public class StreamFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
             t -> {
               _pending--;
               onNextValue(TaskOrValue.value(t));
-            }), context, StreamFoldTask.this);
+            }), context, AsyncFoldTask.this);
       }
 
       private <A> FusionTask<?, A> fusedPropgatingTask(final String description, final Task<A> task, final Consumer<A> consumer) {

@@ -7,12 +7,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.async.Subscriber;
+import com.linkedin.parseq.collection.async.Subscription;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
 import com.linkedin.parseq.example.common.MockService;
-import com.linkedin.parseq.stream.Subscriber;
-import com.linkedin.parseq.stream.Subscription;
 import com.linkedin.parseq.task.Task;
 
 /**

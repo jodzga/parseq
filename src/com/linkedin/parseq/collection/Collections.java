@@ -1,6 +1,6 @@
 package com.linkedin.parseq.collection;
 
-import com.linkedin.parseq.stream.StreamCollection;
+import com.linkedin.parseq.collection.async.AsyncCollection;
 import com.linkedin.parseq.task.Task;
 
 public class Collections {
@@ -9,12 +9,12 @@ public class Collections {
 
   public static <T> ParSeqCollection<T> fromTasks(final Iterable<Task<T>> tasks)
   {
-    return StreamCollection.fromTasks(tasks);
+    return AsyncCollection.fromTasks(tasks);
   }
 
   public static <T> ParSeqCollection<T> fromValues(final Iterable<T> input)
   {
-    return StreamCollection.fromValues(input);
+    return AsyncCollection.fromValues(input);
   }
 
 }

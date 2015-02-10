@@ -1,4 +1,4 @@
-package com.linkedin.parseq.transducer;
+package com.linkedin.parseq.collection.transducer;
 
 import java.util.function.BiFunction;
 
