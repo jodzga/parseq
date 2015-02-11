@@ -206,6 +206,16 @@ public interface Task<T> extends Promise<T>, Cancellable
     return mapOrFlatMap("mapOrFlatMap", f);
   }
 
+  default Task<T> withSideEffect(final Function<T, Task<?>> f) {
+    //TODO
+    return null;
+  }
+
+  default Task<T> withSideEffect(final String desription, final Function<T, Task<?>> f) {
+    //TODO
+    return null;
+  }
+
   /**
    * Applies the function to the result of this Task, and returns
    * a new Task with the result of this Task to allow fluent chaining.
@@ -320,7 +330,7 @@ public interface Task<T> extends Promise<T>, Cancellable
 
   default Task<T> recoverWith(final Function<Throwable, Task<T>> f) {
     return recoverWith("recoverWith", f);
-  }  
+  }
   /**
    * Creates a new Task that will handle any Throwable that this Task might throw
    * or Task cancellation. If this task completes successfully,
@@ -369,7 +379,7 @@ public interface Task<T> extends Promise<T>, Cancellable
   default Task<T> fallBackTo(final Function<Throwable, Task<T>> f) {
     return fallBackTo("fallBackTo", f);
   }
-  
+
   static class TimeoutContextRunWrapper<T> implements ContextRunWrapper<T> {
 
     protected final SettablePromise<T> _result = Promises.settable();
