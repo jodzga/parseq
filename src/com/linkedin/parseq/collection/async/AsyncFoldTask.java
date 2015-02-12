@@ -72,11 +72,26 @@ public class AsyncFoldTask<Z, T> extends BaseTask<Z> implements Ref<Z> {
           TaskOrValue<Step<Z>> step = _reducer.apply(AsyncFoldTask.this, tValue);
           if (step.isTask()) {
             _pending++;
-            scheduleTask(fusedPropgatingTask("reduce", step.getTask(),
-                s -> {
-                  _pending--;
-                  onNextStep(s);
-                }), context, AsyncFoldTask.this);
+            //TODO introduce fusable task type and use it here,
+            //this is temporary hack
+            step.getTask().onResolve(p -> {
+              if (p.isFailed()) {
+                _subscription.cancel();
+                _partialResult = null;
+                if (!result.isDone()) {
+                  result.fail(p.getError());
+                }
+              } else {
+                _pending--;
+                onNextStep(p.get());
+              }
+            });
+          scheduleTask(step.getTask(), context, AsyncFoldTask.this);
+//            scheduleTask(fusedPropgatingTask("reduce", step.getTask(),
+//                s -> {
+//                  _pending--;
+//                  onNextStep(s);
+//                }), context, AsyncFoldTask.this);
           } else {
             onNextStep(step.getValue());
           }

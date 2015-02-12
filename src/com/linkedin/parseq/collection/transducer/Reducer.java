@@ -32,6 +32,12 @@ public interface Reducer<Z, T> extends BiFunction<Ref<Z>, TaskOrValue<T>, TaskOr
     public FlowControl getType() {
       return _flow;
     }
+
+    @Override
+    public String toString() {
+      return "Step [flow=" + _flow + ", value=" + _value + "]";
+    }
+
   }
 
 }

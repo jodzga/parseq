@@ -6,7 +6,13 @@ public final class Integers {
 
   public static void requireNonNegative(final int n) {
     if (n < 0) {
-      throw new IllegalArgumentException("Argument must be non negative integer numebr, but is: " + n);
+      throw new IllegalArgumentException("Argument must be a non negative integer numebr, but is: " + n);
+    }
+  }
+
+  public static void requirePositive(final int n) {
+    if (n <= 0) {
+      throw new IllegalArgumentException("Argument must be a positive integer numebr, but is: " + n);
     }
   }
 }

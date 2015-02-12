@@ -16,6 +16,9 @@
 
 package com.linkedin.parseq.example.common;
 
+import com.linkedin.parseq.example.domain.Company;
+import com.linkedin.parseq.example.domain.DB;
+import com.linkedin.parseq.example.domain.Person;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.task.BaseTask;
 import com.linkedin.parseq.task.Context;
@@ -24,6 +27,7 @@ import com.linkedin.parseq.trace.Trace;
 import com.linkedin.parseq.trace.codec.json.JsonTraceCodec;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -49,6 +53,16 @@ public class ExampleUtil
         return service.call(request);
       }
     };
+  }
+
+  public static <T> Task<T> fetch(String name, final MockService<T> service, final int id, final Map<Integer, T> map) {
+    final long mean = DEFAULT_LATENCY_MEAN;
+    final long stddev = DEFAULT_LATENCY_STDDEV;
+    final long latency = Math.max(LATENCY_MIN, (int)(RANDOM.nextGaussian() * stddev + mean));
+    final MockRequest<T> request = (map.containsKey(id)) ?
+        new SimpleMockRequest<T>(latency, map.get(id)) :
+        new ErrorMockRequest<T>(latency, new Exception("404"));
+    return callService("fetch" + name + "[id=" + id + "]", service, request);
   }
 
   public static Task<String> fetchUrl(final MockService<String> httpClient,

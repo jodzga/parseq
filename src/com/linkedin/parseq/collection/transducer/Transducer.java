@@ -48,45 +48,41 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
   }
 
   default Transducer<T, R> take(final int n) {
-    Integers.requireNonNegative(n);
-    if (n > 0) {
-      final Counter counter = new Counter(0);
-      return fr -> apply((z, r) -> r.flatMap(rValue -> {
+    Integers.requirePositive(n);
+    final Counter counter = new Counter(0);
+    return fr -> apply((z, r) ->
+      fr.apply(z, r).map(s -> {
         if (counter.inc() < n) {
-          return fr.apply(z, TaskOrValue.value(rValue));
+          return Step.cont(s.getValue());
         } else {
-          return fr.apply(z, TaskOrValue.value(rValue)).flatMap(s -> TaskOrValue.value(Step.done(s.getValue())));
+          return Step.done(s.getValue());
         }
-      }));
-    } else {
-      return fr -> apply((z, r) -> TaskOrValue.value(Step.done(z)));
-    }
+    }));
   }
 
   default Transducer<T, R> drop(final int n) {
-    Integers.requireNonNegative(n);
-    if (n >= 0) {
+    Integers.requirePositive(n);
       final Counter counter = new Counter(0);
-      return fr -> apply((z, r) -> r.flatMap( rValue -> {
-        if (counter.inc() < n) {
-          return TaskOrValue.value(Step.cont(z.refGet()));
+      return fr -> apply((z, r) ->
+      fr.apply(z, r).map(s -> {
+        if (counter.inc() <= n) {
+          return Step.cont(z.refGet());
         } else {
-          return fr.apply(z, TaskOrValue.value(rValue));
+          return s;
         }
-      }));
-    } else {
-      return this;
-    }
+    }));
   }
 
   default Transducer<T, R> takeWhile(final Predicate<R> predicate) {
-    return fr -> this.apply((z, r) -> r.flatMap(rValue -> {
-      if (predicate.test(rValue)) {
-        return fr.apply(z, TaskOrValue.value(rValue));
-      } else {
-        return TaskOrValue.value(Step.done(z.refGet()));
-      }
-    }));
+    //TODO
+    return null;
+//    return fr -> apply((z, r) -> r.flatMap(rValue -> {
+//      if (predicate.test(rValue)) {
+//        return fr.apply(z, TaskOrValue.value(rValue));
+//      } else {
+//        return TaskOrValue.value(Step.done(z.refGet()));
+//      }
+//    }));
   }
 
   static final class Trap {
@@ -100,17 +96,19 @@ public interface Transducer<T, R> extends Function<Reducer<Object, R>, Reducer<O
   }
 
   default Transducer<T, R> dropWhile(final Predicate<R> predicate) {
-    final Trap trap = new Trap();
-    return fr -> apply((z, r) -> r.flatMap(rValue -> {
-      if (!trap.closed()) {
-        if (predicate.test(rValue)) {
-          return TaskOrValue.value(Step.cont(z.refGet()));
-        } else {
-          trap.trigger();
-        }
-      }
-      return fr.apply(z, TaskOrValue.value(rValue));
-    }));
+    //TODO
+    return null;
+//    final Trap trap = new Trap();
+//    return fr -> apply((z, r) -> r.flatMap(rValue -> {
+//      if (!trap.closed()) {
+//        if (predicate.test(rValue)) {
+//          return TaskOrValue.value(Step.cont(z.refGet()));
+//        } else {
+//          trap.trigger();
+//        }
+//      }
+//      return fr.apply(z, TaskOrValue.value(rValue));
+//    }));
   }
 
   @SuppressWarnings("rawtypes")

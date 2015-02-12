@@ -1,5 +1,6 @@
 package com.linkedin.parseq.task;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -72,7 +73,7 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
       return new FusionTask<S, T>(name, task, propagator);
     }
   }
-  
+
   @Override
   public <R> FusionTask<?, R> apply(String desc, PromisePropagator<T,R> propagator) {
     return fuse(desc, _task, fulfilling(_propagator).compose(propagator));
@@ -133,4 +134,17 @@ public class FusionTask<S, T>  extends SystemHiddenTask<T> {
     context.run(_task);
     return result;
   }
+
+  @Override
+  public Task<T> within(final long time, final TimeUnit unit) {
+    _task.within(time, unit);
+    return this;
+  }
+
+  @Override
+  public Task<T> withTimeout(long time, TimeUnit unit) {
+    _task.withTimeout(time, unit);
+    return this;
+  }
+
 }
