@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
@@ -32,8 +32,8 @@ public class SyncCollectionFlatMapExample extends AbstractExample
   {
     final MockService<String> httpClient = getService();
 
-    Task<String> task = Collections.fromValues(urls)
-      .flatMap(base -> Collections.fromValues(paths)
+    Task<String> task = ParSeqCollections.fromValues(urls)
+      .flatMap(base -> ParSeqCollections.fromValues(paths)
           .map(path -> base + path)
           .mapTask(url -> fetchUrl(httpClient, url)))
       .reduce((a, b) -> a + "\n" + b)

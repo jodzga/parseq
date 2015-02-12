@@ -32,10 +32,10 @@ public class DB {
   public static final Map<Integer, Message> messageDB = new HashMap<Integer, Message>() {
     private static final long serialVersionUID = 1L;
     {
-      put(1, new Message(1, 2, "Hi", "How are you?"));
-      put(2, new Message(2, 1, "Re: Hi", "Great!"));
+      put(1, new Message(1, 2, "Hi", "Hi, how are you?"));
+      put(2, new Message(2, 1, "Re: Hi", "Hi, I'm great!"));
       put(3, new Message(1, 3, "Meeting?", "Does 2pm work for you?"));
-      put(4, new Message(3, 4, "Interesting", "Check this out!"));
+      put(4, new Message(3, 4, "Interesting", "Hi, Check this out!"));
     }
   };
 

@@ -4,7 +4,7 @@ package com.linkedin.parseq.example.collections;
 import java.util.Arrays;
 import java.util.List;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
@@ -26,7 +26,7 @@ public class SyncCollectionExample extends AbstractExample
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
 
-    Task<String> task = Collections.fromValues(urls)
+    Task<String> task = ParSeqCollections.fromValues(urls)
       .reduce((a, b) -> a + ", " + b)
       .andThen(System.out::println);
 

@@ -6,7 +6,7 @@ import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 import java.util.Arrays;
 import java.util.List;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;

@@ -6,7 +6,7 @@ import java.util.List;
 
 import javafx.scene.Group;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.task.Task;

@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.testng.annotations.Test;
 
 import com.linkedin.parseq.TestUtil;
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.BaseEngineTest;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.PromiseListener;
@@ -181,7 +181,7 @@ public class TestTasks extends BaseEngineTest
     }
 
     // final task runs all the tasks in parallel
-    final Task<?> timeoutTask = Collections.fromTasks(tasks).toList();
+    final Task<?> timeoutTask = ParSeqCollections.fromTasks(tasks).toList();
 
     getEngine().run(timeoutTask);
 

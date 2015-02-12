@@ -6,7 +6,7 @@ import static com.linkedin.parseq.example.common.ExampleUtil.fetchUrl;
 import java.util.Arrays;
 import java.util.List;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.collection.async.Subscriber;
 import com.linkedin.parseq.collection.async.Subscription;
 import com.linkedin.parseq.engine.Engine;
@@ -33,8 +33,8 @@ public class StreamExample extends AbstractExample
   {
     final MockService<String> httpClient = getService();
 
-    Task<?> task = Collections.fromValues(urls)
-      .flatMap(base -> Collections.fromValues(paths)
+    Task<?> task = ParSeqCollections.fromValues(urls)
+      .flatMap(base -> ParSeqCollections.fromValues(paths)
           .map(path -> base + path)
           .mapTask(url -> fetchUrl(httpClient, url)))
           .subscribe(new Subscriber<String>() {

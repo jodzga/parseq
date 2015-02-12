@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
@@ -34,9 +34,9 @@ public class ParFilterExample extends AbstractExample
     List<Task<String>> fetchSizes = fetchList(httpClient, urls);
 
     Task<String> find =
-        Collections.fromTasks(fetchSizes)
+        ParSeqCollections.fromTasks(fetchSizes)
           .filter(s -> !s.contains("google"))
-          .flatMap(z -> Collections.fromTasks(fetchList(httpClient, urls))
+          .flatMap(z -> ParSeqCollections.fromTasks(fetchList(httpClient, urls))
                 .filter(s -> s.contains("twitter")))
           .find(s -> s.contains("twitter"));
 

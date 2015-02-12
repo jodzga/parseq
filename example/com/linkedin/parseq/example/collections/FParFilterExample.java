@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
@@ -31,7 +31,7 @@ public class FParFilterExample extends AbstractExample
     List<String> urls = Arrays.asList("http://www.linkedin.com", "http://www.google.com", "http://www.twitter.com");
 
     Task<String> find =
-        Collections.fromValues(urls)
+        ParSeqCollections.fromValues(urls)
           .mapTask(url -> fetchUrl(httpClient, url)
                         .withTimeout(200, TimeUnit.MILLISECONDS)
                         .recover("default", t -> ""))

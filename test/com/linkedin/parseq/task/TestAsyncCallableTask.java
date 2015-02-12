@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.testng.annotations.Test;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.BaseEngineTest;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.engine.EngineBuilder;
@@ -52,7 +52,7 @@ public class TestAsyncCallableTask extends BaseEngineTest
       }));
     }
 
-    final Task<?> par = Collections.fromTasks(tasks).task();
+    final Task<?> par = ParSeqCollections.fromTasks(tasks).task();
     getEngine().run(par);
 
     assertTrue(par.await(5, TimeUnit.SECONDS));

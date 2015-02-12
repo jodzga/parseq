@@ -1,11 +1,12 @@
 /* $Id$ */
 package com.linkedin.parseq.example.domain;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.linkedin.parseq.collection.Collections;
+import com.linkedin.parseq.collection.ParSeqCollection;
+import com.linkedin.parseq.collection.ParSeqCollections;
 import com.linkedin.parseq.engine.Engine;
 import com.linkedin.parseq.example.common.AbstractDomainExample;
 import com.linkedin.parseq.example.common.ExampleUtil;
@@ -22,78 +23,69 @@ public class Examples extends AbstractDomainExample
     new Examples().runExample();
   }
 
-  //mapping results
+  //---------------------------------------------------------------
+
   //create summary for a person: "<first name> <last name>"
   Task<String> createSummary(int id) {
-    return fetchPerson(id)
-        .map(person -> person.getFirstName() + " " + person.getLastName());
+    return null;
   }
 
-  //preferred way
-  String shortSummary(Person person) {
-    return person.getFirstName() + " " + person.getLastName();
-  }
+  //---------------------------------------------------------------
 
   //handles failures delivering degraded experience
   Task<String> createResilientSummary(int id) {
-    return fetchPerson(id)
-        .map(this::shortSummary)
-        .recover(e -> "Member " + id);
+    return null;
   }
 
+  //---------------------------------------------------------------
+
   //handles failures delivering degraded experience in timely fashion
-  Task<String> createReactiveSummary(int id) {
-    return fetchPerson(id)
-        .withTimeout(100, TimeUnit.MILLISECONDS)
-        .map(this::shortSummary)
-        .recover(e -> "Member " + id);
+  Task<String> createResponsiveSummary(int id) {
+    return null;
   }
+
+  //---------------------------------------------------------------
 
   /** Tasks composition */
 
   //create extended summary for a person: "<first name> <last name> working at <company name>"
-  //chaining sequence of tasks
   Task<String> createExtendedSummary(int id) {
-    return fetchPerson(id).flatMap(this::createExtendedSummary);
+    return null;
   }
 
-  Task<String> createExtendedSummary(final Person person) {
-    return fetchCompany(person.getCompanyId())
-      .map(company -> shortSummary(person) + " working at " + company.getName());
-  }
+  //---------------------------------------------------------------
 
   //create mailbox summary for a person: "<first name> <last name> has <X> messages"
   Task<String> createMailboxSummary(int id) {
-    return Tasks.par(createSummary(id), fetchMailbox(id))
-        .map((summary, mailbox) -> summary + " has " + mailbox.size() + " messages");
+    return null;
   }
+
+  //---------------------------------------------------------------
 
   /** Task collections */
 
-  Task<String> createSummaries(List<Integer> ids) {
-    return Collections.fromValues(ids)
-        .mapTask(this::createReactiveSummary)
-        .reduce((a, b) -> a + "\n" + b);
+  //---------------------------------------------------------------
+
+  //create summary of connections
+  //<first name> <last name> working at <company name>
+  //<first name> <last name> working at <company name>
+  //(...)
+  Task<String> createSummariesOfConnections(Integer id) {
+    return null;
   }
 
-  Task<String> createSummariesForConnections(Integer id) {
-    return Collections.fromValue(id)
-      .mapTask(this::fetchPerson)
-      .flatMap(person ->
-        Collections.fromValues(person.getConnections())
-          .mapTask(this::fetchPerson))
-      .mapTask(connection -> createExtendedSummary(connection))
-      .reduce((a, b) -> a + "\n" + b)
-      .within(300, TimeUnit.MILLISECONDS);
+  //---------------------------------------------------------------
+
+  //Find a message which contains given word
+  Task<String> findMessageWithWord(String word) {
+    return null;
   }
+
+  //---------------------------------------------------------------
 
   @Override
-  protected void doRunExample(final Engine engine) throws Exception
-  {
-    //Task<String> task = createReactiveSummary(1);
-    //Task<List<String>> task = createSummariesHavingTasks(fetchPersons(DB.personIds));
-
-    Task<String> task = createSummariesForConnections(1);
+  protected void doRunExample(final Engine engine) throws Exception {
+    Task<String> task = null;
 
     runTaskAndPrintResults(engine, task);
   }
