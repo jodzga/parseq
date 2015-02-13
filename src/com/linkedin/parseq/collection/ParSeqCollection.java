@@ -11,6 +11,14 @@ import java.util.function.Predicate;
 import com.linkedin.parseq.collection.async.Subscriber;
 import com.linkedin.parseq.task.Task;
 
+/**
+ * TODO proposals
+ * mapTask -> mapWith
+ * + filterWith
+ * + flatten
+ * within -> takeWithin
+ */
+
 public interface ParSeqCollection<T> {
 
   //transformations
@@ -24,17 +32,17 @@ public interface ParSeqCollection<T> {
   public ParSeqCollection<T> take(final int n);
 
   public ParSeqCollection<T> distinct();
-  
+
   public ParSeqCollection<T> sorted(Comparator<? super T> comparator);
-  
+
   public ParSeqCollection<T> takeWhile(final Predicate<T> predicate);
 
   public ParSeqCollection<T> drop(final int n);
 
   public ParSeqCollection<T> dropWhile(final Predicate<T> predicate);
-  
+
   public ParSeqCollection<T> within(final long time, final TimeUnit unit);
-  
+
   public <A> ParSeqCollection<A> mapTask(final Function<T, Task<A>> f);
 
   public <A> ParSeqCollection<A> flatMap(final Function<T, ParSeqCollection<A>> f);
@@ -52,7 +60,7 @@ public interface ParSeqCollection<T> {
   public Task<T> max(Comparator<? super T> comparator);
 
   public Task<T> min(Comparator<? super T> comparator);
-  
+
   public Task<List<T>> toList();
 
   public Task<T> reduce(final BiFunction<T, T, T> op);
@@ -62,9 +70,9 @@ public interface ParSeqCollection<T> {
   public Task<Integer> count();
 
   public Task<?> task();
-  
+
   //streaming
 
   public Task<?> subscribe(Subscriber<T> subscriber);
-  
+
 }
