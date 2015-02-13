@@ -26,7 +26,7 @@ import com.linkedin.parseq.util.Objects;
  * A {@link Task} that will run a {@link Callable} and will set the task's value
  * to the value returned from the callable.
  * <p/>
- * Use {@link Tasks#callable(String, java.util.concurrent.Callable)} to create
+ * Use {@link Tasks#sync(String, java.util.concurrent.Callable)} to create
  * instances of this class.
  *
  * @author Chris Pettitt (cpettitt@linkedin.com)

@@ -16,7 +16,7 @@
 
 package com.linkedin.parseq.task;
 
-import static com.linkedin.parseq.task.Tasks.callable;
+import static com.linkedin.parseq.task.Tasks.sync;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertNull;
@@ -93,7 +93,7 @@ public class TestTaskStates
   public void testRun() throws InterruptedException
   {
     final String result = "result";
-    final Task<String> task = callable("task", () -> result);
+    final Task<String> task = sync("task", () -> result);
 
     runTask(task);
 
@@ -139,7 +139,7 @@ public class TestTaskStates
   public void testRunWithSyncError() throws InterruptedException
   {
     final RuntimeException exception = new RuntimeException();
-    final Task<String> task = callable("task", () -> { throw exception; });
+    final Task<String> task = sync("task", () -> { throw exception; });
 
     runTask(task);
 
@@ -174,7 +174,7 @@ public class TestTaskStates
   public void testSetPriorityAfterRun() throws InterruptedException
   {
     final String result = "result";
-    final Task<String> task = Tasks.callable("task", () -> result);
+    final Task<String> task = Tasks.sync("task", () -> result);
 
     runTask(task);
 
@@ -197,7 +197,7 @@ public class TestTaskStates
     // Used to finish the sync task
     final CountDownLatch finishLatch = new CountDownLatch(1);
 
-    final Task<String> task = callable("task", () ->
+    final Task<String> task = sync("task", () ->
       {
         startLatch.countDown();
         try {
@@ -271,7 +271,7 @@ public class TestTaskStates
   public void testCancelAfterDone() throws InterruptedException
   {
     final String result = "result";
-    final Task<String> task = callable("task", () -> result);
+    final Task<String> task = sync("task", () -> result);
 
     runTask(task);
 

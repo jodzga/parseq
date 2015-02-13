@@ -16,7 +16,7 @@
 
 package com.linkedin.parseq.example.composite;
 
-import static com.linkedin.parseq.task.Tasks.callable;
+import static com.linkedin.parseq.task.Tasks.sync;
 import static com.linkedin.parseq.task.Tasks.par;
 import static com.linkedin.parseq.function.Tuples.*;
 
@@ -60,13 +60,13 @@ public class MergeSortExample extends AbstractExample
 
   private Task<int[]> mergeSort(final int[] toSort, final Range range) {
     if (range.size() == 0) {
-      return callable("leaf", () -> new int[0]);
+      return sync("leaf", () -> new int[0]);
     } else if (range.size() == 1) {
-      return callable("leaf", () -> new int[] { toSort[range.start()] });
+      return sync("leaf", () -> new int[] { toSort[range.start()] });
     } else {
       // Neither base case applied, so recursively split this problem into
       // smaller problems and then merge the results.
-      return callable("split", () -> tuple(range.firstHalf(), range.secondHalf()))
+      return sync("split", () -> tuple(range.firstHalf(), range.secondHalf()))
         .flatMap(ranges ->
            par(mergeSort(toSort, ranges._1()), mergeSort(toSort, ranges._2()))
               .map("merge", parts -> merge(ranges._1(), parts._1(), ranges._2(), parts._2())));

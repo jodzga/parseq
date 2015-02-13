@@ -17,7 +17,7 @@
 package com.linkedin.parseq.task;
 
 import static com.linkedin.parseq.task.Tasks.action;
-import static com.linkedin.parseq.task.Tasks.callable;
+import static com.linkedin.parseq.task.Tasks.sync;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertTrue;
 
@@ -146,7 +146,7 @@ public class TestContext extends BaseEngineTest
   {
     final String value = "done";
 
-    final Task<String> innerTask = callable("innerTask", () -> value);
+    final Task<String> innerTask = sync("innerTask", () -> value);
 
     final Task<String> task = new BaseTask<String>()
     {
@@ -172,9 +172,9 @@ public class TestContext extends BaseEngineTest
 
     final AtomicReference<String> predecessorValueRef = new AtomicReference<String>();
 
-    final Task<String> predecessorTask = callable("predecessorTask", () -> predecessorValue);
+    final Task<String> predecessorTask = sync("predecessorTask", () -> predecessorValue);
 
-    final Task<String> successorTask = callable("successorTask", () -> {
+    final Task<String> successorTask = sync("successorTask", () -> {
         predecessorValueRef.set(predecessorTask.get());
         return successorValue;
     });

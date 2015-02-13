@@ -76,6 +76,7 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
   }
 
   private final AtomicReference<State<T>> _stateRef;
+  //TODO shouldn't _stateRef contain trace information?
   private final String _name;
   private final ShallowTraceBuilder _shallowTraceBuilder;
   private final RelationshipBuilder<Task<?>> _relationshipBuilder;
@@ -195,6 +196,7 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
     }
     else
     {
+      //TODO this is only possible when task was cancelled - move this to cancel method?
       if (parent != null)
       {
         _relationshipBuilder.addRelationship(Relationship.POTENTIAL_CHILD_OF, parent);
@@ -325,6 +327,10 @@ public abstract class BaseTask<T> extends DelegatingPromise<T> implements Task<T
     State<T> state;
     State<T> newState;
     final long endNanos = System.nanoTime();
+
+    //TODO if previous state was PENDING then notify
+    //asynchronous execution about the cancellation
+
     do
     {
       state = _stateRef.get();

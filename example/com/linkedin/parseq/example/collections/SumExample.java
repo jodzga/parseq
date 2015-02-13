@@ -25,7 +25,7 @@ public class SumExample extends AbstractExample
 
   static Task<Integer> toTask(final Integer i) {
 //    if (true) throw new RuntimeException();
-    return Tasks.callable("number", () -> i);
+    return Tasks.sync("number", () -> i);
   }
 
   @Override

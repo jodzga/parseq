@@ -16,6 +16,8 @@
 
 package com.linkedin.parseq.task;
 
+import com.linkedin.parseq.promise.Promise;
+
 
 /**
  * This class provides a set of factory methods for create common
@@ -41,8 +43,14 @@ public class Tasks
     return new ActionTask(name, runnable);
   }
 
-  public static <T> Task<T> callable(final String name, final RichCallable<? extends T> callable) {
+  public static <T> Task<T> sync(final String name, final RichCallable<? extends T> callable) {
     return new CallableTask<T>(name, callable);
+  }
+
+  public static <T> Task<T> async(final String name, final RichCallable<Promise<? extends T>> callable) {
+    //TODO
+
+    return null;
   }
 
   public static <T1, T2> Tuple2Task<T1, T2> par(final Task<T1> task1,

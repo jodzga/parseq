@@ -128,7 +128,7 @@ public class TestTasks extends BaseEngineTest
   public void testWithoutTimeout() throws InterruptedException
   {
     final String value = "value";
-    final Task<String> timeoutTask = Tasks.callable("task", () -> value)
+    final Task<String> timeoutTask = Tasks.sync("task", () -> value)
         .withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
@@ -142,7 +142,7 @@ public class TestTasks extends BaseEngineTest
   public void testTimeoutTaskWithError() throws InterruptedException
   {
     final RuntimeException error = new RuntimeException();
-    final Task<Object> timeoutTask = Tasks.callable("task", () -> { throw error; })
+    final Task<Object> timeoutTask = Tasks.sync("task", () -> { throw error; })
       .withTimeout(200, TimeUnit.MILLISECONDS);
 
     getEngine().run(timeoutTask);
@@ -247,7 +247,7 @@ public class TestTasks extends BaseEngineTest
   public void testThrowableCallableNoError() throws InterruptedException
   {
     final Integer magic = 0x5f3759df;
-    final Task<Integer> task = Tasks.callable("magic", () -> magic);
+    final Task<Integer> task = Tasks.sync("magic", () -> magic);
 
     getEngine().run(task);
     task.await(100, TimeUnit.MILLISECONDS);
@@ -262,7 +262,7 @@ public class TestTasks extends BaseEngineTest
   public void testThrowableCallableWithError() throws InterruptedException
   {
     final RuntimeException throwable = new RuntimeException();
-    final Task<Object> task = Tasks.callable("error", () -> { throw throwable; });
+    final Task<Object> task = Tasks.sync("error", () -> { throw throwable; });
 
     getEngine().run(task);
     task.await(100, TimeUnit.MILLISECONDS);

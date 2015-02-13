@@ -12,7 +12,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import static com.linkedin.parseq.TestUtil.value;
-import static com.linkedin.parseq.task.Tasks.callable;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertTrue;
 import static org.testng.AssertJUnit.fail;

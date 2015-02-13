@@ -48,7 +48,7 @@ public class BranchSkippedExample extends AbstractExample
 
   private static Task<Integer> add(final int x, final int toAdd)
   {
-    return Tasks.callable("add " + toAdd, () -> x + toAdd);
+    return Tasks.sync("add " + toAdd, () -> x + toAdd);
   }
 
   private Task<Integer> fetchX(final MockService<Integer> serviceX,
