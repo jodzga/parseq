@@ -505,5 +505,4 @@ public interface Task<T> extends Promise<T>, Cancellable
     return new Par3Task<T1, T2, T3>("par", task1, task2, task3);
   }
 
-
 }
