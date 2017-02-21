@@ -305,7 +305,7 @@ public abstract class BaseTask<T> extends DelegatingPromise<T>implements Task<T>
     if (transitionDone()) {
       traceDone(value);
       getSettableDelegate().done(value);
-      taskLogger.logTaskEnd(BaseTask.this, _traceValueProvider);
+      //taskLogger.logTaskEnd(BaseTask.this, _traceValueProvider);
     }
   }
 
@@ -313,7 +313,7 @@ public abstract class BaseTask<T> extends DelegatingPromise<T>implements Task<T>
     if (transitionDone()) {
       traceFailure(error);
       getSettableDelegate().fail(error);
-      taskLogger.logTaskEnd(BaseTask.this, _traceValueProvider);
+      //taskLogger.logTaskEnd(BaseTask.this, _traceValueProvider);
     }
   }
 
