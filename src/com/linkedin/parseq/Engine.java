@@ -37,6 +37,7 @@ import com.linkedin.parseq.internal.PlanDeactivationListener;
 import com.linkedin.parseq.internal.PlatformClock;
 import com.linkedin.parseq.internal.SerialExecutor;
 import com.linkedin.parseq.internal.SerialExecutor.TaskQueue;
+import com.linkedin.parseq.monitoring.Monitoring;
 import com.linkedin.parseq.internal.PlanContext;
 
 
@@ -119,6 +120,8 @@ public class Engine {
 
   private final ExecutionMonitor _executionMonitor;
 
+  private final Monitoring _monitoring = new Monitoring();
+
   private final PlanDeactivationListener _planDeactivationListener;
   private final PlanCompletionListener _planCompletionListener;
 
@@ -187,6 +190,7 @@ public class Engine {
       } catch (Throwable t) {
         LOG.error("Uncaught throwable from custom PlanCompletionListener.", t);
       } finally {
+        _monitoring.planCompleted(planContext.getPlanClass());
         _taskDoneListener.onPlanCompleted(planContext);
       }
     };
@@ -239,6 +243,8 @@ public class Engine {
     _executionMonitor = monitorExecution
         ? new ExecutionMonitor(maxMonitors, durationThresholdNano, checkIntervalNano, idleDurationNano,
             loggingIntervalNano, minStallNano, stallsHistorySize, level, new PlatformClock()) : null;
+
+    _monitoring.start();
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -455,6 +461,7 @@ public class Engine {
     PlanContext planContext = new PlanContext(this, _taskExecutor, _timerExecutor, _loggerFactory, _allLogger,
         _rootLogger, planClass, task, _maxRelationshipsPerTrace, _planDeactivationListener, _planCompletionListener,
         _taskQueueFactory.newTaskQueue(), _drainSerialExecutorQueue, _executionMonitor);
+    _monitoring.planStarted(planClass);
     new ContextImpl(planContext, task).runTask();
   }
 
@@ -470,6 +477,7 @@ public class Engine {
   public void shutdown() {
     if (tryTransitionShutdown()) {
       tryTransitionTerminate();
+      _monitoring.stop();
     }
   }
 
