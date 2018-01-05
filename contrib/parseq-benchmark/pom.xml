@@ -70,7 +70,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.linkedin.parseq.PerfLarge</mainClass>
+                    <mainClass>com.linkedin.parseq.PerfLargeAllocate</mainClass>
                 </configuration>
             </plugin>
             <plugin>
@@ -82,7 +82,7 @@
 	                </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.linkedin.parseq.PerfLarge</mainClass>
+                            <mainClass>com.linkedin.parseq.PerfLargeAllocate</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
