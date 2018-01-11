@@ -120,6 +120,12 @@ public class ResourceUtilizationMonitor {
     long safepointTime = -1;
     long vmTime = -1;
     double processCPULoad;
+    long newGenCap = -1;
+    long oldGenCap = -1;
+    long edenUsed = -1;
+    long survivor1Used = -1;
+    long survivor2Used = -1;
+    long oldUsed = -1;
 
     timestamp = System.nanoTime();
     totalGcDuration = _totalGcDuration.get();
@@ -145,6 +151,24 @@ public class ResourceUtilizationMonitor {
         case "sun.gc.collector.1.time":
           oldGCTime = ticksToNano(valueToLong(counter.getValue()));
           break;
+        case "sun.gc.generation.0.capacity":
+          newGenCap = ticksToNano(valueToLong(counter.getValue()));
+          break;
+        case "sun.gc.generation.1.capacity":
+          oldGenCap = ticksToNano(valueToLong(counter.getValue()));
+          break;
+        case "sun.gc.generation.0.space.0.used":
+          edenUsed = ticksToNano(valueToLong(counter.getValue()));
+          break;
+        case "sun.gc.generation.0.space.1.used":
+          survivor1Used = ticksToNano(valueToLong(counter.getValue()));
+          break;
+        case "sun.gc.generation.0.space.2.used":
+          survivor2Used = ticksToNano(valueToLong(counter.getValue()));
+          break;
+        case "sun.gc.generation.1.space.0.used":
+          oldUsed = ticksToNano(valueToLong(counter.getValue()));
+          break;
       }
     }
 
@@ -159,7 +183,7 @@ public class ResourceUtilizationMonitor {
 
     return new UtilizationSnapshot(systemLoadAverage, systemCPULoad, timestamp, ticksTime,
         totalGcDuration, bytesCollected, threadAllocations, threadCPUs, threadIds, processCPU, youngGCTime, oldGCTime,
-        appTime, safepointTime, vmTime, processCPULoad);
+        appTime, safepointTime, vmTime, processCPULoad, newGenCap, oldGenCap, edenUsed, survivor1Used, survivor2Used, oldUsed);
   }
 
   private Long valueToLong(Object o) {
@@ -243,11 +267,18 @@ public class ResourceUtilizationMonitor {
     private final long _safepointTime;
     private final long _vmTime;
     private final double _processCPULoad;
+    private final long _newGenCap;
+    private final long _oldGenCap;
+    private final long _edenUsed;
+    private final long _survivor1Used;
+    private final long _survivor2Used;
+    private final long _oldUsed;
 
     public UtilizationSnapshot(double systemLoadAverage, double systemCPULoad, long timestamp, long ticksTime,
         long totalGcDuration, long bytesCollected, long[] threadAllocations, long[] threadCPUs, long[] threadIds,
         long processCPU, long youngGCTime, long oldGCTime, long appTime, long safepointTime, long vmTime,
-        double processCPULoad) {
+        double processCPULoad, long newGenCap, long oldGenCap, long edenUsed, long survivor1Used,
+        long survivor2Used, long oldUsed) {
       _systemLoadAverage = systemLoadAverage;
       _systemCPULoad = systemCPULoad;
       _timestamp = timestamp;
@@ -264,6 +295,12 @@ public class ResourceUtilizationMonitor {
       _safepointTime = safepointTime;
       _vmTime = vmTime;
       _processCPULoad = processCPULoad;
+      _newGenCap = newGenCap;
+      _oldGenCap = oldGenCap;
+      _edenUsed = edenUsed;
+      _survivor1Used = survivor1Used;
+      _survivor2Used = survivor2Used;
+      _oldUsed = oldUsed;
     }
 
     public double getSystemLoadAverage() {
@@ -324,6 +361,30 @@ public class ResourceUtilizationMonitor {
 
     public long getVmTime() {
       return _vmTime;
+    }
+
+    public long getNewGenCap() {
+      return _newGenCap;
+    }
+
+    public long getOldGenCap() {
+      return _oldGenCap;
+    }
+
+    public long getEdenUsed() {
+      return _edenUsed;
+    }
+
+    public long getSurvivor1Used() {
+      return _survivor1Used;
+    }
+
+    public long getSurvivor2Used() {
+      return _survivor2Used;
+    }
+
+    public long getOldUsed() {
+      return _oldUsed;
     }
 
     public double getProcessCPULoad() {

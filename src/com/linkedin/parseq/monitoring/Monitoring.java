@@ -25,7 +25,8 @@ public class Monitoring {
 
     if (_lastSnapshot == null) {
       System.out.println("systemLoadAverage,systemCPULoad,processCPULoad,timestamp,ticksTime,totalGcDuration,bytesCollected,"
-          + "threadAllocations,threadCPUs,processCPU,youngGCTime,oldGCTime,appTime,safepointTime,vmTime");
+          + "threadAllocations,threadCPUs,processCPU,youngGCTime,oldGCTime,appTime,safepointTime,vmTime,newGenCap,"
+          + "oldGenCap,edenUsed,survivor1Used,survivor2Used,oldUsed");
     } else {
       System.out.println(snapshot.getSystemLoadAverage() + "," +
           snapshot.getSystemCPULoad() + "," +
@@ -43,7 +44,13 @@ public class Monitoring {
           (snapshot.getOldGCTime() - _lastSnapshot.getOldGCTime()) + "," +
           (snapshot.getAppTime() - _lastSnapshot.getAppTime()) + "," +
           (snapshot.getSafepointTime() - _lastSnapshot.getSafepointTime()) + "," +
-          (snapshot.getVmTime() - _lastSnapshot.getVmTime()));
+          (snapshot.getVmTime() - _lastSnapshot.getVmTime()) + "," +
+          snapshot.getNewGenCap() + "," +
+          snapshot.getOldGenCap() + "," +
+          snapshot.getEdenUsed() + "," +
+          snapshot.getSurvivor1Used() + "," +
+          snapshot.getSurvivor2Used() + "," +
+          snapshot.getOldUsed());
     }
 
     //TODO if resources were overloaded in last time slice then ignore executed plans metrics for this slice and the next one too
